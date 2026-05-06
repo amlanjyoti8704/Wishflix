@@ -8,22 +8,24 @@ export default function ProfilesPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-bg-primary px-4">
       {/* Minimal Navbar */}
-      <nav className="absolute top-0 left-0 right-0 z-20 px-6 lg:px-12 py-6">
+      <nav className="absolute top-4  left-5 z-20 px-6 lg:px-2 py-6">
         <Link href="/login" className="inline-block">
           <span className="text-3xl font-black tracking-tight text-accent">
-            WISH
+            WISHFLIX
           </span>
         </Link>
       </nav>
 
       {/* Content */}
-      <div className="text-center animate-fade-in">
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2">
-          Who&apos;s watching?
-        </h1>
-        <p className="text-text-muted text-sm sm:text-base mb-10 sm:mb-14">
-          Select your profile to get started
-        </p>
+      <div className="text-center flex flex-col items-center  justify-center gap-6 animate-fade-in">
+        <div>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2">
+            Who&apos;s watching?
+          </h1>
+          <p className="text-text-muted text-sm sm:text-base mb-10 sm:mb-14">
+            Select your profile to get started
+          </p>
+        </div>
 
         {/* Profile Grid */}
         <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-8 lg:gap-10 mb-12">
@@ -62,7 +64,7 @@ export default function ProfilesPage() {
 
         {/* Manage Profiles */}
         <button
-          className="px-8 py-2.5 border border-text-muted/30 rounded-lg text-sm text-text-muted hover:text-white hover:border-white/50 transition-all duration-300"
+          className="px-8 py-2.5 w-[35vw] sm:w-[20vw] xl:w-[15vw] h-[5vh] border border-text-muted/30 rounded text-sm text-text-muted hover:text-white hover:border-white/50 transition-all duration-300"
           id="manage-profiles-btn"
         >
           Manage Profiles

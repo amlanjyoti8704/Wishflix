@@ -32,7 +32,7 @@ export default function HeroBanner({ content }: HeroBannerProps) {
 
       {/* Content */}
       <div className="relative z-10 h-full flex items-center">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 w-full">
+        <div className="absolute max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 w-full left-5 right-5">
           <div className="max-w-xl lg:max-w-2xl animate-slide-up">
             {/* Badge */}
             <div className="flex items-center gap-3 mb-4">
@@ -61,34 +61,74 @@ export default function HeroBanner({ content }: HeroBannerProps) {
             </h1>
 
             {/* Description */}
-            <p className="text-base sm:text-lg text-text-secondary leading-relaxed mb-8 max-w-lg">
+            <p className="text-base sm:text-lg text-text-secondary leading-relaxed mb-8 max-w-4xl">
               {content.description}
             </p>
 
+              <div className="h-10"></div>
             {/* Buttons */}
             <div className="flex items-center gap-4">
               <button
-                className="group flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 bg-white text-bg-primary font-bold rounded-lg text-sm sm:text-base transition-all duration-300 hover:bg-white/90 hover:scale-105 hover:shadow-xl hover:shadow-white/10 active:scale-95"
+                className="relative group flex items-center w-[10vw] h-8 gap-3 px-7 sm:px-9 py-3.5 sm:py-4 
+                bg-white text-black font-semibold rounded text-sm sm:text-base 
+                transition-all duration-300 
+                hover:scale-105 active:scale-95
+                shadow-lg shadow-black/30 hover:shadow-xl hover:shadow-white/10
+                overflow-hidden"
                 id="hero-play-btn"
               >
-                <svg className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-                Play
+                {/* Shine Effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent 
+                -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+
+                {/* Icon */}
+                <div className="flex items-center justify-center w-6 h-6 rounded-r-full bg-black/10 group-hover:bg-black/20 transition">
+                  <svg
+                    className="w-full h-full translate-x-[1px] group-hover:scale-110 transition-transform"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
+
+                {/* Text */}
+                <span className="tracking-wide">Play Now</span>
               </button>
+
               <button
-                className="group flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 bg-white/15 backdrop-blur-sm text-white font-semibold rounded-lg text-sm sm:text-base transition-all duration-300 hover:bg-white/25 hover:scale-105 border border-white/10 hover:border-white/20 active:scale-95"
+                className="relative group flex items-center w-[10vw] h-8 gap-3 px-7 sm:px-9 py-3.5 sm:py-4 
+                bg-white/10 backdrop-blur-md text-white font-medium rounded text-sm sm:text-base 
+                transition-all duration-300 
+                hover:bg-white/20 hover:scale-105 active:scale-95
+                border border-white/10 hover:border-white/20
+                shadow-md shadow-black/20 hover:shadow-lg hover:shadow-white/10
+                overflow-hidden"
                 id="hero-info-btn"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                More Info
+                {/* Subtle shine */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent 
+                -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+
+                {/* Icon container */}
+                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white/10 group-hover:bg-white/20 transition">
+                  <svg
+                    className="w-full h-full group-hover:scale-110 transition-transform"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+
+                {/* Text */}
+                <span className="relative tracking-wide">More Info</span>
               </button>
             </div>
           </div>

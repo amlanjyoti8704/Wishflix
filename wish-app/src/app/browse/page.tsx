@@ -18,7 +18,7 @@ export default function BrowsePage() {
       <HeroBanner content={heroContent} />
 
       {/* Content Rows */}
-      <div className="-mt-16 sm:-mt-24 relative z-10 pb-16 space-y-2 sm:space-y-4">
+      <div className="-mt-16 sm:-mt-24 relative z-10 pb-16 flex flex-col gap-4 sm:gap-6">
         <Row title="Top Picks for You" items={topPicks} id="top-picks" />
         <Row title="Memories" items={memories} id="memories" />
         <Row

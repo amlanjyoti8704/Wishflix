@@ -34,7 +34,7 @@ export default function Row({ title, items, id, accent = false }: RowProps) {
   };
 
   return (
-    <section className="relative py-4 sm:py-6" id={id}>
+    <section className="relative py-4 flex flex-col gap-3 sm:py-6" id={id}>
       {/* Title */}
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 mb-3 sm:mb-4">
         <div className="flex items-center gap-3">
@@ -84,7 +84,7 @@ export default function Row({ title, items, id, accent = false }: RowProps) {
         <div
           ref={scrollRef}
           onScroll={checkScroll}
-          className="flex gap-2 sm:gap-3 lg:gap-4 overflow-x-auto hide-scrollbar px-4 sm:px-6 lg:px-12 pb-2"
+          className="flex gap-2 sm:gap-3 lg:gap-4 overflow-x-auto hide-scrollbar px-4 sm:px-6 lg:px-12 pb-2 h-[21vh]"
         >
           {items.map((item, index) => (
             <Card key={item.id} content={item} index={index} />

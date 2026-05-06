@@ -10,9 +10,7 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -26,113 +24,112 @@ export default function Navbar() {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+      className={`fixed top-0 left-4 right-4 z-50 transition-all duration-500 ${
         scrolled
-          ? "bg-bg-primary/95 backdrop-blur-md shadow-lg shadow-black/20"
+          ? "bg-black/70 backdrop-blur-xl border-b border-white/10 shadow-lg"
           : "bg-gradient-to-b from-black/80 via-black/40 to-transparent"
       }`}
     >
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12">
-        <div className="flex items-center justify-between h-16 lg:h-20">
-          {/* Logo */}
+      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-10">
+        <div className="flex items-center justify-between h-16 w-full">
+
+          {/* 🔥 Logo */}
           <Link
             href="/browse"
             className="flex items-center gap-2 group"
-            id="navbar-logo"
           >
-            <span className="text-2xl lg:text-3xl font-black tracking-tight text-accent group-hover:text-accent-hover transition-colors duration-300">
-              WISH
-            </span>
-            <span className="hidden sm:inline-block text-[10px] font-medium text-text-muted uppercase tracking-[0.2em] mt-1">
-              Stream
+            <div className="w-9 h-9 rounded bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg group-hover:scale-110 transition">
+              <span className="text-white font-bold text-sm">W</span>
+            </div>
+            <span className="text-xl font-bold tracking-wide text-white group-hover:text-red-400 transition">
+              WISHFLIX
             </span>
           </Link>
 
-          {/* Desktop Nav Links */}
-          <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                id={`nav-${link.label.toLowerCase().replace(/\s+/g, "-")}`}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                  pathname === link.href ||
-                  (link.href !== "/browse" && pathname?.startsWith(link.href))
-                    ? "text-white bg-white/10"
-                    : "text-text-secondary hover:text-white hover:bg-white/5"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+          {/* 🔥 Desktop Nav */}
+          <div className="hidden md:flex items-center gap-6">
+            {navLinks.map((link) => {
+              const isActive =
+                pathname === link.href ||
+                (link.href !== "/browse" && pathname?.startsWith(link.href));
+
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="relative text-sm font-medium text-white/70 hover:text-white transition"
+                >
+                  {link.label}
+
+                  {/* Active underline glow */}
+                  <span
+                    className={`absolute left-0 -bottom-1 h-[2px] w-full bg-gradient-to-r from-red-500 to-purple-500 transition-all duration-300 ${
+                      isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                    }`}
+                  />
+                </Link>
+              );
+            })}
           </div>
 
-          {/* Right Side: Profile Avatar */}
-          <div className="flex items-center gap-3">
-            <Link
-              href="/profiles"
-              className="relative group"
-              id="navbar-profile"
-            >
-              <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-lg bg-gradient-to-br from-accent to-red-800 flex items-center justify-center text-sm font-bold transition-all duration-300 group-hover:ring-2 group-hover:ring-accent/50 group-hover:scale-110">
+          {/* 🔥 Right Side */}
+          <div className="flex items-center gap-4">
+
+            {/* Profile */}
+            <Link href="/profiles" className="group">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500 to-red-800 flex items-center justify-center font-bold text-sm transition-all duration-300 group-hover:ring-2 group-hover:ring-red-500/50 group-hover:scale-110">
                 A
               </div>
             </Link>
 
-            {/* Mobile menu button */}
+            {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-lg hover:bg-white/10 transition-colors"
-              id="mobile-menu-btn"
-              aria-label="Toggle menu"
+              className="md:hidden p-2 rounded-lg hover:bg-white/10 transition"
             >
               <svg
-                className="w-5 h-5"
+                className="w-5 h-5 text-white"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
                 {mobileMenuOpen ? (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
+                  <path strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 ) : (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
+                  <path strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 )}
               </svg>
             </button>
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* 🔥 Mobile Menu */}
         <div
-          className={`md:hidden overflow-hidden transition-all duration-300 ${
-            mobileMenuOpen ? "max-h-64 pb-4" : "max-h-0"
+          className={`md:hidden transition-all duration-500 overflow-hidden ${
+            mobileMenuOpen ? "max-h-60 opacity-100" : "max-h-0 opacity-0"
           }`}
         >
-          <div className="flex flex-col gap-1 pt-2 border-t border-border">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 ${
-                  pathname === link.href
-                    ? "text-white bg-white/10"
-                    : "text-text-secondary hover:text-white hover:bg-white/5"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+          <div className="mt-4 bg-white/[0.05] backdrop-blur-xl rounded-2xl border border-white/10 p-2 flex flex-col gap-1">
+
+            {navLinks.map((link) => {
+              const isActive = pathname === link.href;
+
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`px-4 py-3 rounded-xl text-sm transition ${
+                    isActive
+                      ? "bg-white/10 text-white"
+                      : "text-white/70 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+
           </div>
         </div>
       </div>

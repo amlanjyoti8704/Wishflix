@@ -16,7 +16,7 @@ export default function Card({ content, index = 0 }: CardProps) {
       id={`card-${content.id}`}
     >
       {/* Card Container */}
-      <div className="relative overflow-hidden rounded-lg sm:rounded-xl transition-all duration-500 ease-out group-hover:scale-105 group-hover:z-20 group-hover:shadow-2xl group-hover:shadow-accent/10">
+      <div className="absolute left-3 right-3 h-full overflow-hidden rounded-lg sm:rounded-xl transition-all duration-500 ease-out group-hover:scale-105 group-hover:z-20 group-hover:shadow-2xl group-hover:shadow-accent/10">
         {/* Image */}
         <div className="relative aspect-[16/10] overflow-hidden">
           <Image
