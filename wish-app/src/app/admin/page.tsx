@@ -5,23 +5,278 @@ import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 import { adminContent, categories } from "@/lib/mockData";
+import { supabase } from "../../../lib/supabaseClient";
+import { useEffect } from "react";
+import {useRef} from "react";
 
 export default function AdminPage() {
+
+  const mediaInputRef =
+    useRef<HTMLInputElement>(null);
+
+  const thumbnailInputRef =
+    useRef<HTMLInputElement>(null);
+
   const [activeTab, setActiveTab] = useState("dashboard");
   const [mobileTab, setMobileTab] = useState("dashboard");
 
   // Form state
   const [formTitle, setFormTitle] = useState("");
   const [formDesc, setFormDesc] = useState("");
-  const [formCategory, setFormCategory] = useState("");
+  // const [formCategory, setFormCategory] = useState("");
+
+  const [mediaFile, setMediaFile] =
+  useState<File | null>(null);
+
+  const [thumbnailFile, setThumbnailFile] =
+    useState<File | null>(null);
+
+  const [selectedProfiles, setSelectedProfiles] =
+    useState<string[]>([]);
+
+  const [selectedCategories, setSelectedCategories] =
+    useState<string[]>([]);
+
+  const [profiles, setProfiles] =
+    useState<any[]>([]);
+
+  const [mediaType, setMediaType] =
+    useState("");
 
   const currentTab = activeTab;
+
+  useEffect(() => {
+
+    const loadProfiles = async () => {
+
+      const { data: sessionData } =
+        await supabase.auth.getSession();
+
+      const user =
+        sessionData.session?.user;
+
+      if (!user) return;
+
+      const { data } =
+        await supabase
+          .from("profiles")
+          .select("*")
+          .eq("user_id", user.id);
+
+      if (data) {
+        setProfiles(data);
+      }
+    };
+
+    loadProfiles();
+
+  }, []);
+
+  const handleUpload = async (
+    e: React.FormEvent
+  ) => {
+
+    e.preventDefault();
+
+    try {
+
+      const { data: sessionData } =
+        await supabase.auth.getSession();
+
+      const user =
+        sessionData.session?.user;
+
+      if (!user) {
+        alert("Login required");
+        return;
+      }
+
+      if (!mediaFile) {
+        alert("Select media file");
+        return;
+      }
+
+      if (!thumbnailFile) {
+        alert("Select thumbnail");
+        return;
+      }
+
+      // =========================
+      // Upload Thumbnail
+      // =========================
+
+      const thumbnailName =
+        `${Date.now()}-${thumbnailFile.name}`;
+
+      const {
+        error: thumbnailError,
+      } =
+        await supabase.storage
+          .from("thumbnails")
+          .upload(
+            thumbnailName,
+            thumbnailFile
+          );
+
+      if (thumbnailError) {
+        console.log(thumbnailError);
+        return;
+      }
+
+      const {
+        data: thumbnailData,
+      } =
+        supabase.storage
+          .from("thumbnails")
+          .getPublicUrl(
+            thumbnailName
+          );
+
+      // =========================
+      // Upload Media
+      // =========================
+
+      const mediaName =
+        `${Date.now()}-${mediaFile.name}`;
+
+      const {
+        error: mediaError,
+      } =
+        await supabase.storage
+          .from("media")
+          .upload(
+            mediaName,
+            mediaFile
+          );
+
+      if (mediaError) {
+        console.log(mediaError);
+        return;
+      }
+
+      const {
+        data: mediaData,
+      } =
+        supabase.storage
+          .from("media")
+          .getPublicUrl(
+            mediaName
+          );
+
+      // =========================
+      // Create Media Record
+      // =========================
+
+      const {
+        data: mediaRow,
+        error: mediaInsertError,
+      } =
+        await supabase
+          .from("media")
+          .insert({
+            title: formTitle,
+            description: formDesc,
+            media_type: mediaType,
+            thumbnail_url:
+              thumbnailData.publicUrl,
+            media_url:
+              mediaData.publicUrl,
+            uploaded_by: user.id,
+          })
+          .select()
+          .single();
+
+      if (
+        mediaInsertError ||
+        !mediaRow
+      ) {
+        console.log(
+          mediaInsertError
+        );
+        return;
+      }
+
+      // =========================
+      // Assign Profiles
+      // =========================
+
+      if (
+        selectedProfiles.length > 0
+      ) {
+
+        const profileRows =
+          selectedProfiles.map(
+            (profileId) => ({
+              media_id:
+                mediaRow.id,
+              profile_id:
+                profileId,
+            })
+          );
+
+        const { error: profileError } =
+          await supabase
+            .from("media_profiles")
+            .insert(profileRows);
+
+        console.log(profileError); 
+      }
+
+      // =========================
+      // Categories
+      // =========================
+
+      if (
+        selectedCategories.length > 0
+      ) {
+
+        const categoryRows =
+          selectedCategories.map(
+            (category) => ({
+              media_id:
+                mediaRow.id,
+              category,
+            })
+          );
+
+        const { error: categoryError } =
+          await supabase
+            .from("media_categories")
+            .insert(categoryRows);
+
+        console.log(categoryError);
+      }
+
+      alert(
+        "Content uploaded successfully"
+      );
+
+      setFormTitle("");
+      setFormDesc("");
+      setMediaType("");
+      setMediaFile(null);
+      setThumbnailFile(null);
+      setSelectedProfiles([]);
+      setSelectedCategories([]);
+
+      if (thumbnailInputRef.current) {
+        thumbnailInputRef.current.value = "";
+      }
+
+      if (mediaInputRef.current) {
+        mediaInputRef.current.value = "";
+      }
+
+    } catch (err) {
+      console.log(err);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-bg-primary">
       <Navbar />
 
-      <div className="pt-16 lg:pt-20 flex">
+      <div style={{paddingTop: "60px", marginLeft: "16px", marginRight: "16px"}} className="pt-16 lg:pt-20 flex gap-10">
         {/* Desktop Sidebar */}
         <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
 
@@ -129,7 +384,7 @@ export default function AdminPage() {
 
             {/* Add Content Tab */}
             {currentTab === "add" && (
-              <div className="space-y-8">
+              <div className="flex flex-col gap-10 space-y-9">
                 <div>
                   <h1 className="text-2xl sm:text-3xl font-bold mb-1">
                     Add Content
@@ -140,18 +395,12 @@ export default function AdminPage() {
                 </div>
 
                 <div className="max-w-2xl">
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      alert("Content submitted! (Demo)");
-                    }}
-                    className="space-y-6"
-                  >
+                  <form onSubmit={handleUpload} className="space-y-4">
                     {/* Title */}
                     <div>
                       <label
                         htmlFor="admin-title"
-                        className="block text-sm font-medium text-text-secondary mb-2"
+                        className="block text-lg font-medium text-text-secondary mb-2"
                       >
                         Title
                       </label>
@@ -169,7 +418,7 @@ export default function AdminPage() {
                     <div>
                       <label
                         htmlFor="admin-desc"
-                        className="block text-sm font-medium text-text-secondary mb-2"
+                        className="block text-lg font-medium text-text-secondary mb-2"
                       >
                         Description
                       </label>
@@ -185,55 +434,240 @@ export default function AdminPage() {
 
                     {/* Image Upload */}
                     <div>
-                      <label className="block text-sm font-medium text-text-secondary mb-2">
+                      <label className="block text-lg font-medium text-text-secondary mb-2">
                         Thumbnail Image
                       </label>
-                      <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-accent/30 transition-colors duration-300 cursor-pointer group">
-                        <svg
-                          className="w-10 h-10 mx-auto text-text-muted group-hover:text-accent transition-colors mb-3"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                      <div className="w-full h-10 flex items-center px-4 py-3 bg-bg-tertiary border border-border rounded-xl text-white text-sm transition-all duration-300 focus:border-accent/50 focus:ring-1 focus:ring-accent/20 hover:border-border-hover placeholder:text-text-muted/50 resize-none">
+                        <input
+                          ref={thumbnailInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="text-center"
+                          onChange={(e) =>
+                            setThumbnailFile(
+                              e.target.files?.[0] || null
+                            )
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    {/* Media Upload */}
+                    <div>
+                      <label className="block text-lg font-medium text-text-secondary mb-2">
+                        Media Upload
+                      </label>
+                      <div className="w-full h-10 flex items-center px-4 py-3 bg-bg-tertiary border border-border rounded-xl text-white text-sm transition-all duration-300 focus:border-accent/50 focus:ring-1 focus:ring-accent/20 hover:border-border-hover placeholder:text-text-muted/50 resize-none">
+                        <input
+                          ref={mediaInputRef}
+                          type="file"
+                          accept="video/*,image/*"
+                          onChange={(e)=>
+                            setMediaFile(
+                              e.target.files?.[0] || null
+                            )
+                          }
+                        />  
+                      </div>
+                    </div>
+
+                    {/* Media Type */}
+                    <div className="">
+                      <label className="block text-lg font-medium text-text-secondary mb-2">
+                        Media Type
+                      </label>
+                      <div className="w-full h-10 flex items-center px-4 py-3 bg-bg-tertiary border border-border rounded-xl text-white text-sm transition-all duration-300 focus:border-accent/50 focus:ring-1 focus:ring-accent/20 hover:border-border-hover placeholder:text-text-muted/50 resize-none">
+                        <select
+                          value={mediaType}
+                          className="w-full"
+                          onChange={(e)=> 
+                            setMediaType(e.target.value)
+                          }
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1.5}
-                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                          />
-                        </svg>
-                        <p className="text-sm text-text-muted">
-                          Click to upload or drag and drop
-                        </p>
-                        <p className="text-xs text-text-muted/60 mt-1">
-                          PNG, JPG, WebP up to 10MB
-                        </p>
+                          <option value="">
+                            Select Type
+                          </option>
+
+                          <option value="movie">
+                            Movie
+                          </option>
+
+                          <option value="video">
+                            Video
+                          </option>
+
+                          <option value="photo">
+                            Photo
+                          </option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Profiles */}
+                    <div className="max-w-2xl space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-lg font-medium text-text-secondary">
+                          Select Profiles
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const allSelected = selectedProfiles.length === profiles.length;
+                            if (allSelected) {
+                              setSelectedProfiles([]);
+                            } else {
+                              setSelectedProfiles(profiles.map((p) => p.id));
+                            }
+                          }}
+                          className="text-xs font-semibold text-accent hover:text-accent-hover transition-colors flex items-center gap-1.5 cursor-pointer"
+                        >
+                          {selectedProfiles.length === profiles.length ? (
+                            <>
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                              Deselect All
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                              </svg>
+                              Select All
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 bg-bg-tertiary border border-border rounded-xl">
+                        {profiles.map((p) => {
+                          const isChecked = selectedProfiles.includes(p.id);
+                          return (
+                            <label
+                              key={p.id}
+                              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-all duration-200 select-none group ${
+                                isChecked
+                                  ? "bg-accent/10 border-accent text-white focus-within:ring-2 focus-within:ring-accent/20"
+                                  : "bg-bg-primary/40 border-border/60 text-text-muted hover:border-border-hover hover:text-white focus-within:ring-2 focus-within:ring-accent/20"
+                              }`}
+                            >
+                              <div className="relative flex items-center justify-center">
+                                <input
+                                  type="checkbox"
+                                  value={p.id}
+                                  checked={isChecked}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedProfiles((prev) => [...prev, p.id]);
+                                    } else {
+                                      setSelectedProfiles((prev) => prev.filter((id) => id !== p.id));
+                                    }
+                                  }}
+                                  className="peer sr-only"
+                                />
+                                <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-200 ${
+                                  isChecked
+                                    ? "bg-accent border-accent text-white"
+                                    : "border-border-hover bg-bg-tertiary group-hover:border-text-muted"
+                                }`}>
+                                  {isChecked && (
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  )}
+                                </div>
+                              </div>
+                              <span className="text-xs font-medium truncate">
+                                {p.display_name || p.name}
+                              </span>
+                            </label>
+                          );
+                        })}
                       </div>
                     </div>
 
                     {/* Category */}
-                    <div>
-                      <label
-                        htmlFor="admin-category"
-                        className="block text-sm font-medium text-text-secondary mb-2"
-                      >
-                        Category
-                      </label>
-                      <select
-                        id="admin-category"
-                        value={formCategory}
-                        onChange={(e) => setFormCategory(e.target.value)}
-                        className="w-full px-4 py-3 bg-bg-tertiary border border-border rounded-xl text-white text-sm transition-all duration-300 focus:border-accent/50 focus:ring-1 focus:ring-accent/20 hover:border-border-hover appearance-none cursor-pointer"
-                      >
-                        <option value="">Select a category</option>
+                    <div className="max-w-2xl space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-lg font-medium text-text-secondary">
+                          Select Categories
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const selectable = categories.filter((c) => c !== "All");
+                            const allSelected = selectedCategories.length === selectable.length;
+                            if (allSelected) {
+                              setSelectedCategories([]);
+                            } else {
+                              setSelectedCategories(selectable);
+                            }
+                          }}
+                          className="text-xs font-semibold text-accent hover:text-accent-hover transition-colors flex items-center gap-1.5 cursor-pointer"
+                        >
+                          {selectedCategories.length === categories.filter((c) => c !== "All").length ? (
+                            <>
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                              Deselect All
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                              </svg>
+                              Select All
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 bg-bg-tertiary border border-border rounded-xl">
                         {categories
                           .filter((c) => c !== "All")
-                          .map((cat) => (
-                            <option key={cat} value={cat}>
-                              {cat}
-                            </option>
-                          ))}
-                      </select>
+                          .map((cat) => {
+                            const isChecked = selectedCategories.includes(cat);
+                            return (
+                              <label
+                                key={cat}
+                                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-all duration-200 select-none group ${
+                                  isChecked
+                                    ? "bg-accent/10 border-accent text-white focus-within:ring-2 focus-within:ring-accent/20"
+                                    : "bg-bg-primary/40 border-border/60 text-text-muted hover:border-border-hover hover:text-white focus-within:ring-2 focus-within:ring-accent/20"
+                                }`}
+                              >
+                                <div className="relative flex items-center justify-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedCategories((prev) => [...prev, cat]);
+                                      } else {
+                                        setSelectedCategories((prev) =>
+                                          prev.filter((x) => x !== cat)
+                                        );
+                                      }
+                                    }}
+                                    className="peer sr-only"
+                                  />
+                                  <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-200 ${
+                                    isChecked
+                                      ? "bg-accent border-accent text-white"
+                                      : "border-border-hover bg-bg-tertiary group-hover:border-text-muted"
+                                  }`}>
+                                    {isChecked && (
+                                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    )}
+                                  </div>
+                                </div>
+                                <span className="text-xs font-medium truncate">{cat}</span>
+                              </label>
+                            );
+                          })}
+                      </div>
                     </div>
 
                     {/* Submit */}

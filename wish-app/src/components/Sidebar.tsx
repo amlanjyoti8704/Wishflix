@@ -66,7 +66,7 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   };
 
   return (
-    <aside className="w-64 bg-bg-secondary border-r border-border min-h-[calc(100vh-5rem)] hidden lg:flex flex-col">
+    <aside className="w-65 bg-bg-secondary border-r border-border mt-[20px] min-h-[calc(100vh-64px)] rounded-br-xl gap-5 hidden lg:flex flex-col">
       {/* Header */}
       <div className="p-6 border-b border-border">
         <h2 className="text-lg font-bold text-text-primary">Admin Panel</h2>
@@ -85,7 +85,7 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                 <button
                   onClick={() => onTabChange(tab)}
                   id={`sidebar-${tab}`}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
+                  className={`w-full h-12 flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
                     isActive
                       ? "bg-accent/10 text-accent border border-accent/20"
                       : "text-text-secondary hover:text-white hover:bg-white/5"

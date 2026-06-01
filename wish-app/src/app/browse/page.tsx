@@ -1,37 +1,76 @@
+"use client"  
 import Navbar from "@/components/Navbar";
 import HeroBanner from "@/components/HeroBanner";
 import Row from "@/components/Row";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import {
-  heroContent,
-  topPicks,
-  memories,
-  favorites,
-  specialMoments,
-} from "@/lib/mockData";
+import { useEffect, useState } from "react";
+import {getMovies} from "@/services/movieService";
+import { getFavorites } from "@/services/favoriteService";
+import { getCurrentProfile } from "@/lib/getCurrentProfile";
+
+  // import {
+//   heroContent,
+//   topPicks,
+//   memories,
+//   favorites,
+//   specialMoments,
+// } from "@/lib/mockData";
 
 export default function BrowsePage() {
+
+  const [movies, setMovies]=useState<any[]>([]);
+  const [favorites, setFavorites] = useState<any[]>([]);
+
+  useEffect(() => {
+
+    const fetchFavorites =
+    async () => {
+
+      const profileId =
+        getCurrentProfile();
+
+      if (!profileId) return;
+
+      const data = await getFavorites(profileId);
+
+      setFavorites(data);
+    };
+
+    fetchFavorites();
+
+  }, []);
+  
+  useEffect(()=>{
+    const fetchMovies=async()=>{
+      const data=await getMovies();
+      setMovies(data);
+    };
+    fetchMovies();
+  },[])
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-bg-primary">
         <Navbar />
 
         {/* Hero Section */}
-        <HeroBanner content={heroContent} />
+        {movies.length>0 && (
+        <HeroBanner content={movies[0]} />
+        )}
 
         {/* Content Rows */}
         <div className="-mt-16 sm:-mt-24 relative z-10 pb-16 flex flex-col gap-4 sm:gap-6">
-          <Row title="Top Picks for You" items={topPicks} id="top-picks" />
-          <Row title="Memories" items={memories} id="memories" />
+          <Row title="Top Picks for You" items={movies} id="top-picks" />
+          <Row title="Memories" items={movies} id="memories" />
           <Row
             title="✨ Special Moments"
-            items={specialMoments}
+            items={movies}
             id="special-moments"
             accent
           />
-          <Row title="Favorites" items={favorites} id="my-list" />
-          <Row title="Continue Watching" items={[...topPicks].reverse()} id="continue-watching" />
-          <Row title="Recently Added" items={[...favorites].reverse()} id="recently-added" />
+          <Row title="Favorites" items={favorites.map((f:any)=>f.movies)} id="my-list" />
+          <Row title="Continue Watching" items={[...movies].reverse()} id="continue-watching" />
+          <Row title="Recently Added" items={[...movies].reverse()} id="recently-added" />
         </div>
 
         {/* Footer */}

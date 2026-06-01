@@ -46,7 +46,8 @@ export default function Navbar() {
 
   return (
     <nav
-      className={`fixed top-0 left-4 right-4 z-50 transition-all duration-500 ${
+      style={{paddingLeft:'16px', paddingRight:'16px'}}
+      className={`fixed top-0 w-full z-50 transition-all duration-500 ${
         scrolled
           ? "bg-black/70 backdrop-blur-xl border-b border-white/10 shadow-lg"
           : "bg-gradient-to-b from-black/80 via-black/40 to-transparent"
