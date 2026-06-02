@@ -4,11 +4,13 @@ import { useState } from "react";
 import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
-import { adminContent, categories } from "@/lib/mockData";
+import { categories } from "@/lib/mockData";
 import { supabase } from "../../../lib/supabaseClient";
 import { useEffect } from "react";
 import {useRef} from "react";
 import { v4 as uuidv4 } from "uuid";
+import { getAllMedia, deleteMedia, updateMedia } from "@/services/mediaService";
+import {ImSpinner2} from "react-icons/im";
 
 export default function AdminPage() {
 
@@ -44,6 +46,40 @@ export default function AdminPage() {
   const [mediaType, setMediaType] =
     useState("");
 
+  const [media, setMedia] = useState<any[]>([]);
+
+  const [selectedMedia, setSelectedMedia] =
+    useState<any>(null);
+
+  const [editTitle, setEditTitle] =
+    useState("");
+
+  const [editDescription,
+    setEditDescription] =
+    useState("");
+
+  const [showEditModal,
+    setShowEditModal] =
+    useState(false);
+
+  const [storedCategories, setStoredCategories] =
+    useState<string[]>([]);
+
+  const [uniqueCategories, setUniqueCategories] =
+    useState<string[]>([]);
+
+  const [uploading, setUploading] =
+    useState(false);
+
+  const [deletingId, setDeletingId] =
+    useState<string | null>(null);
+
+  const [saving, setSaving] =
+    useState(false);
+
+  const [pageLoading, setPageLoading] =
+    useState(true);
+
   const currentTab = activeTab;
 
   useEffect(() => {
@@ -69,7 +105,31 @@ export default function AdminPage() {
       }
     };
 
+    const loadMedia = async () => {
+      setPageLoading(true)
+      const data: any = await getAllMedia();
+      setMedia(data);
+      setPageLoading(false)
+    };
+
+    const loadCategories = async () => {
+      const { data, error } = await supabase
+        .from("media_categories")
+        .select("category");
+      if (error) {
+        console.error('Error loading categories:', error);
+        return;
+      }
+      // Extract distinct categories
+      const categories = data?.map((item) => item.category) ?? [];
+      const uniqueCategories = Array.from(new Set(categories));
+      setUniqueCategories(uniqueCategories);
+      setStoredCategories(categories);
+    };
+
     loadProfiles();
+    loadMedia();
+    loadCategories();
 
   }, []);
 
@@ -78,6 +138,7 @@ export default function AdminPage() {
   ) => {
 
     e.preventDefault();
+    setUploading(true);
 
     try {
 
@@ -89,16 +150,19 @@ export default function AdminPage() {
 
       if (!user) {
         alert("Login required");
+        setUploading(false);
         return;
       }
 
       if (!mediaFile) {
         alert("Select media file");
+        setUploading(false);
         return;
       }
 
       if (!thumbnailFile) {
         alert("Select thumbnail");
+        setUploading(false);
         return;
       }
 
@@ -121,6 +185,7 @@ export default function AdminPage() {
 
       if (thumbnailError) {
         console.log(thumbnailError);
+        setUploading(false);
         return;
       }
 
@@ -152,6 +217,7 @@ export default function AdminPage() {
 
       if (mediaError) {
         console.log(mediaError);
+        setUploading(false);
         return;
       }
 
@@ -194,6 +260,7 @@ export default function AdminPage() {
         console.log(
           mediaInsertError
         );
+        setUploading(false);
         return;
       }
 
@@ -248,6 +315,8 @@ export default function AdminPage() {
         console.log(categoryError);
       }
 
+      setUploading(false);
+
       alert(
         "Content uploaded successfully"
       );
@@ -270,9 +339,117 @@ export default function AdminPage() {
 
     } catch (err) {
       console.log(err);
+      setUploading(false);
     }
   };
 
+  const handleDelete = async(mediaId: string) => {
+
+      const confirmed =
+
+        window.confirm(
+
+          "Delete this media?"
+
+        );
+
+      if (!confirmed) return;
+
+      setDeletingId(mediaId);
+
+      const error = await deleteMedia(mediaId);
+
+      if (!error) {
+        setMedia(prev => prev.filter(m => m.id !== mediaId));
+        alert("Deleted");
+        setDeletingId(null);
+      } else {
+        setDeletingId(null);
+      }
+
+    };
+  
+  const handleUpdateMedia = async () => {
+
+    setSaving(true);
+
+      if (!selectedMedia){
+        setSaving(false);
+        return;
+      }
+
+      const {
+        data,
+        error
+      } =
+        await updateMedia(
+          selectedMedia.id,
+          {
+            title: editTitle,
+            description:
+              editDescription,
+          }
+        );
+
+      await supabase
+        .from("media_profiles")
+        .delete()
+        .eq("media_id", selectedMedia.id);
+
+      if (selectedProfiles.length > 0) {
+        await supabase
+          .from("media_profiles")
+          .insert(
+            selectedProfiles.map(
+              profileId => ({
+                media_id: selectedMedia.id,
+                profile_id: profileId
+              })
+            )
+          );
+      }
+
+      await supabase
+        .from("media_categories")
+        .delete()
+        .eq("media_id", selectedMedia.id);
+
+      if (selectedCategories.length > 0) {
+        await supabase
+          .from("media_categories")
+          .insert(
+            selectedCategories.map(
+              category => ({
+                media_id: selectedMedia.id,
+                category
+              })
+            )
+          );
+      }
+
+      if (error) {
+        console.log(error);
+        setSaving(false);
+        return;
+      }
+
+      setMedia(prev =>
+        prev.map(m =>
+          m.id ===
+          selectedMedia.id
+            ? data
+            : m
+        )
+      );
+
+      setShowEditModal(false);
+
+      setSelectedMedia(null);
+      setSaving(false);
+    };
+
+  console.log("Media", media);
+  console.log("storedCategories", storedCategories);
   return (
     <div className="min-h-screen bg-bg-primary">
       <Navbar />
@@ -328,9 +505,9 @@ export default function AdminPage() {
                 {/* Stats Grid */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   {[
-                    { label: "Total Content", value: "24", icon: "🎬", change: "+3 this week" },
-                    { label: "Categories", value: "8", icon: "📂", change: "+1 new" },
-                    { label: "Special Moments", value: "6", icon: "✨", change: "2 pending" },
+                    { label: "Total Content", value: media.length, icon: "🎬", change: "+3 this week" },
+                    { label: "Categories", value: uniqueCategories.length, icon: "📂", change: "+1 new" },
+                    { label: "Special Moments", value: storedCategories.filter((cat)=>cat==="Special").length, icon: "✨", change: "2 pending" },
                     { label: "Total Views", value: "1.2K", icon: "👁️", change: "+15% growth" },
                   ].map((stat) => (
                     <div
@@ -355,14 +532,14 @@ export default function AdminPage() {
                 <div>
                   <h2 className="text-lg font-bold mb-4">Recent Content</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {adminContent.slice(0, 3).map((item) => (
+                    {media.slice(0, 3).map((item) => (
                       <div
                         key={item.id}
                         className="bg-bg-secondary rounded-xl border border-border overflow-hidden group hover:border-border-hover transition-all duration-300"
                       >
                         <div className="relative aspect-video overflow-hidden">
                           <Image
-                            src={item.image}
+                            src={item.thumbnail_url}
                             alt={item.title}
                             fill
                             className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -675,9 +852,11 @@ export default function AdminPage() {
                     <button
                       type="submit"
                       id="admin-submit"
+                      disabled={uploading}
                       className="w-full sm:w-auto px-8 py-3.5 bg-accent hover:bg-accent-hover text-white font-bold rounded-xl text-sm transition-all duration-300 hover:shadow-lg hover:shadow-accent/25 hover:scale-[1.02] active:scale-[0.98]"
+                      style={{ cursor: uploading ? "not-allowed" : "pointer" , opacity: uploading ? 0.5 : 1}}
                     >
-                      Publish Content
+                      {uploading?"Uploading...":"Publish Content"}
                     </button>
                   </form>
                 </div>
@@ -708,8 +887,48 @@ export default function AdminPage() {
                 </div>
 
                 {/* Content Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {adminContent.map((item) => (
+                {pageLoading
+                ?(
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {[...Array(6)].map((_, i) => (
+                        <div
+                          key={i}
+                          className="
+                            animate-pulse
+                            bg-bg-secondary
+                            rounded-xl
+                            overflow-hidden
+                          "
+                        >
+                          <div
+                            className="
+                              aspect-video
+                              bg-zinc-800
+                            "
+                          />
+                          <div className="p-4">
+                            <div
+                              className="
+                                h-4
+                                bg-zinc-800
+                                rounded
+                                mb-2
+                              "
+                            />
+                            <div
+                              className="
+                                h-3
+                                bg-zinc-900
+                                rounded
+                              "
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                )
+                :(<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {media.map((item) => (
                     <div
                       key={item.id}
                       className="bg-bg-secondary rounded-xl border border-border overflow-hidden group hover:border-border-hover transition-all duration-300"
@@ -717,22 +936,58 @@ export default function AdminPage() {
                     >
                       <div className="relative aspect-video overflow-hidden">
                         <Image
-                          src={item.image}
+                          src={item.thumbnail_url}
                           alt={item.title}
                           fill
                           className="object-cover group-hover:scale-105 transition-transform duration-500"
                           sizes="(max-width: 768px) 100vw, 33vw"
                         />
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300 flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100">
-                          <button className="p-2 rounded-lg bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors">
+                          <button
+                            onClick={async() => {
+                              setSelectedMedia(item);
+                              const { data: profileLinks } = await supabase
+                                  .from("media_profiles")
+                                  .select("profile_id")
+                                  .eq("media_id", item.id);
+
+                              setSelectedProfiles(
+                                profileLinks?.map(
+                                  p => p.profile_id
+                                ) || []
+                              );
+
+                              const { data: categoryLinks } =
+                                  await supabase
+                                    .from("media_categories")
+                                    .select("category")
+                                    .eq("media_id", item.id);
+
+                              setSelectedCategories(
+                                categoryLinks?.map(
+                                  c => c.category
+                                ) || []
+                              );
+
+                              setEditTitle(item.title);
+                              setEditDescription(item.description);
+                              setShowEditModal(true);
+                            }}
+                            className="p-2 rounded-lg bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
+                          >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
                           </button>
-                          <button className="p-2 rounded-lg bg-red-500/20 backdrop-blur-sm hover:bg-red-500/30 transition-colors">
-                            <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <button disabled={deletingId===item.id} onClick={() => handleDelete(item.id)} className="p-2 rounded-lg bg-red-500/20 backdrop-blur-sm hover:bg-red-500/30 transition-colors">
+                            {deletingId===item.id
+                            ?(
+                              <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin"/>
+                            )
+                            :(<svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                            </svg>)
+                            }
                           </button>
                         </div>
                       </div>
@@ -753,7 +1008,249 @@ export default function AdminPage() {
                       </div>
                     </div>
                   ))}
-                </div>
+                </div>)
+                }
+
+                {/* Edit Media Modal */}
+                {showEditModal && selectedMedia && (
+                  <div
+                    className="min-w-full min-h-full fixed inset-0 bg-black/80 backdrop-blur-md flex items-start justify-center z-50 p-4 overflow-y-auto"
+                    onClick={() => setShowEditModal(false)}
+                  >
+                    <div
+                      className="relative min-w-full min-h-full rounded-2xl overflow-hidden shadow-2xl my-8 sm:my-16"
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ animation: "modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)" }}
+                    >
+                      {/* Ambient glow behind thumbnail */}
+                      <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[120%] h-60 opacity-40 blur-3xl pointer-events-none">
+                        <img
+                          src={selectedMedia.thumbnail_url}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+
+                      <div className="relative bg-gradient-to-b from-zinc-900/98 via-zinc-900 to-zinc-950 border border-white/[0.08]  rounded-2xl">
+                        {/* Thumbnail Hero */}
+                        <div className="relative h-48 sm:h-[90vh] flex items-center justify-center p-4 bg-black/40 overflow-hidden">
+                          {/* Ambient blurred reflection backdrop */}
+                          <div 
+                            className="absolute inset-0 bg-cover bg-center opacity-30 blur-md scale-105 pointer-events-none"
+                            style={{ backgroundImage: `url(${selectedMedia.thumbnail_url})` }}
+                          />
+                          <img
+                            src={selectedMedia.thumbnail_url}
+                            alt={selectedMedia.title}
+                            className="relative z-10 max-h-[80vh] max-w-full object-cover rounded-xl shadow-lg border border-white/10"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/80 via-transparent to-transparent pointer-events-none z-10" />
+
+                          {/* Close button */}
+                          <button
+                            onClick={() => setShowEditModal(false)}
+                            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 backdrop-blur-md border border-white/10 flex items-center justify-center transition-all duration-200 hover:bg-white/20 hover:scale-110 cursor-pointer z-20"
+                          >
+                            <svg className="w-3.5 h-3.5 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+
+                          {/* Metadata badges */}
+                          <div className="absolute bottom-3 left-4 flex items-center gap-2 z-20">
+                            {selectedMedia.media_type && (
+                              <span className="px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase bg-accent/90 text-white rounded-md backdrop-blur-sm">
+                                {selectedMedia.media_type}
+                              </span>
+                            )}
+                            {selectedMedia.created_at && (
+                              <span className="px-2.5 py-1 text-[10px] font-medium text-white/60 bg-white/10 rounded-md backdrop-blur-sm">
+                                {new Date(selectedMedia.created_at).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Form Body */}
+                        <div className="p-5 sm:p-7 flex flex-col gap-6">
+                          {/* Section Header */}
+                          <div className="flex items-center gap-2.5 pb-4 border-b border-white/[0.06]">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <h2 className="text-base font-bold text-white">Edit Details</h2>
+                              <p className="text-[11px] text-white/35">Modify the title and description</p>
+                            </div>
+                          </div>
+
+                          {/* Title Field */}
+                          <div>
+                            <label className="flex items-center gap-1.5 text-[11px] font-semibold text-white/40 uppercase tracking-widest mb-2">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                              </svg>
+                              Title
+                            </label>
+                            <input
+                              value={editTitle}
+                              onChange={(e) => setEditTitle(e.target.value)}
+                              placeholder="Enter media title..."
+                              className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white placeholder-white/20 text-sm focus:outline-none focus:border-accent/40 focus:bg-white/[0.06] focus:ring-1 focus:ring-accent/20 transition-all duration-200"
+                            />
+                          </div>
+
+                          {/* Description Field */}
+                          <div>
+                            <label className="flex items-center gap-1.5 text-[11px] font-semibold text-white/40 uppercase tracking-widest mb-2">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+                              </svg>
+                              Description
+                            </label>
+                            <textarea
+                              value={editDescription}
+                              onChange={(e) => setEditDescription(e.target.value)}
+                              placeholder="Enter media description..."
+                              rows={4}
+                              className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white placeholder-white/20 text-sm resize-none focus:outline-none focus:border-accent/40 focus:bg-white/[0.06] focus:ring-1 focus:ring-accent/20 transition-all duration-200"
+                            />
+                          </div>
+
+                          {/* Profiles Selection */}
+                          <div>
+                            <label className="flex items-center gap-1.5 text-[11px] font-semibold text-white/40 uppercase tracking-widest mb-2">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                              </svg>
+                              Profiles
+                            </label>
+                            <div className="flex flex-col gap-2 p-4 bg-white/[0.02] border border-white/[0.06] rounded-xl">
+                              {profiles.map((profile) => {
+                                const isChecked = selectedProfiles.includes(profile.id);
+                                return (
+                                  <label
+                                    key={profile.id}
+                                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-all duration-200 select-none group ${
+                                      isChecked
+                                        ? "bg-accent/10 border-accent text-white"
+                                        : "bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/10 hover:text-white"
+                                    }`}
+                                  >
+                                    <div className="relative flex items-center justify-center">
+                                      <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        onChange={() => {
+                                          if (isChecked) {
+                                            setSelectedProfiles(prev => prev.filter(id => id !== profile.id));
+                                          } else {
+                                            setSelectedProfiles(prev => [...prev, profile.id]);
+                                          }
+                                        }}
+                                        className="peer sr-only"
+                                      />
+                                      <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all duration-200 ${
+                                        isChecked
+                                          ? "bg-accent border-accent text-white"
+                                          : "border-white/20 bg-black/20 group-hover:border-white/40"
+                                      }`}>
+                                        {isChecked && (
+                                          <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                          </svg>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <span className="text-xs font-medium truncate">
+                                      {profile.display_name || profile.name}
+                                    </span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Categories Selection */}
+                          <div>
+                            <label className="flex items-center gap-1.5 text-[11px] font-semibold text-white/40 uppercase tracking-widest mb-2">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              Categories
+                            </label>
+                            <div className="flex flex-col gap-2 p-4 bg-white/[0.02] border border-white/[0.06] rounded-xl">
+                              {categories
+                                .filter((c) => c !== "All")
+                                .map((cat) => {
+                                  const isChecked = selectedCategories.includes(cat);
+                                  return (
+                                    <label
+                                      key={cat}
+                                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-all duration-200 select-none group ${
+                                        isChecked
+                                          ? "bg-accent/10 border-accent text-white"
+                                          : "bg-white/[0.02] border-white/[0.06] text-white/60 hover:border-white/10 hover:text-white"
+                                      }`}
+                                    >
+                                      <div className="relative flex items-center justify-center">
+                                        <input
+                                          type="checkbox"
+                                          checked={isChecked}
+                                          onChange={() => {
+                                            if (isChecked) {
+                                              setSelectedCategories(prev => prev.filter(x => x !== cat));
+                                            } else {
+                                              setSelectedCategories(prev => [...prev, cat]);
+                                            }
+                                          }}
+                                          className="peer sr-only"
+                                        />
+                                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all duration-200 ${
+                                          isChecked
+                                            ? "bg-accent border-accent text-white"
+                                            : "border-white/20 bg-black/20 group-hover:border-white/40"
+                                        }`}>
+                                          {isChecked && (
+                                            <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                            </svg>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <span className="text-xs font-medium truncate">{cat}</span>
+                                    </label>
+                                  );
+                                })}
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-3 pt-2">
+                            <button
+                              disabled={saving}
+                              onClick={handleUpdateMedia}
+                              className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-accent to-red-700 hover:from-red-600 hover:to-red-800 text-white text-sm font-semibold transition-all duration-300 cursor-pointer hover:shadow-lg hover:shadow-accent/25 active:scale-[0.97]"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              {saving ? <ImSpinner2 className="w-4 h-4 animate-spin" /> : "Save Changes"}
+                            </button>
+                            <button
+                              onClick={() => setShowEditModal(false)}
+                              className="px-5 py-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white/60 hover:text-white/80 text-sm font-medium transition-all duration-200 cursor-pointer active:scale-[0.97]"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
