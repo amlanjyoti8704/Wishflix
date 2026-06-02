@@ -13,7 +13,11 @@ export const getProfileMedia = async (
     await supabase
       .from("media_profiles")
       .select(`
-        media (*)
+        media (*,
+          media_categories (
+            category
+          ) 
+        )
       `)
       .eq(
         "profile_id",
@@ -30,3 +34,21 @@ export const getProfileMedia = async (
 
   return data;
 };
+
+export const getMediaById = async (mediaId: string) => {
+
+  const { data, error } =
+    await supabase
+      .from("media")
+      .select("*")
+      .eq("id", mediaId)
+      .single();
+
+  if(error){
+    console.log(error);
+    return null;
+  }
+
+  return data;
+};
+

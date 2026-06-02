@@ -2,6 +2,11 @@
 
 import Image from "next/image";
 import { ContentItem } from "@/lib/mockData";
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { getCurrentProfile } from "@/lib/getCurrentProfile";
+import { addFavorite, removeFavorite, isFavorite } from "@/services/favoriteService";
+
 
 interface CardProps {
   content: any;
@@ -9,12 +14,39 @@ interface CardProps {
 }
 
 export default function Card({ content, index = 0 }: CardProps) {
+  const [liked, setLiked] = useState(false);
+  const router=useRouter();
+
+  useEffect(() => {
+    const checkFavorite = async () => {
+      const profile = getCurrentProfile();
+      if (!profile || !content?.id) return;
+      const favoriteStatus = await isFavorite(profile.id, content.id);
+      setLiked(favoriteStatus);
+    };
+    checkFavorite();
+  }, [content.id]);
+
+  useEffect(() => {
+    const handleFavoriteToggle = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail && customEvent.detail.mediaId === content.id) {
+        setLiked(customEvent.detail.isFavorite);
+      }
+    };
+    window.addEventListener("favoriteToggle", handleFavoriteToggle);
+    return () => window.removeEventListener("favoriteToggle", handleFavoriteToggle);
+  }, [content.id]);
+
   console.log(content.thumbnail_url);
   return (
     <div
       className="group relative flex-shrink-0 w-[160px] sm:w-[200px] md:w-[240px] lg:w-[280px] cursor-pointer animate-fade-in"
       style={{ animationDelay: `${index * 75}ms` }}
       id={`card-${content.id}`}
+      onClick={() =>
+        router.push(`/media/${content.id}`)
+      }
     >
       {/* Card Container */}
       <div className="absolute left-3 right-3 h-full overflow-hidden rounded-lg sm:rounded-xl transition-all duration-500 ease-out group-hover:scale-105 group-hover:z-20 group-hover:shadow-2xl group-hover:shadow-accent/10">
@@ -30,6 +62,39 @@ export default function Card({ content, index = 0 }: CardProps) {
 
           {/* Hover Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-60 group-hover:opacity-90 transition-opacity duration-500" />
+
+          <button
+            className="absolute top-3 left-3 z-30 w-8 h-8 rounded-full bg-black/45 border border-white/10 flex items-center justify-center backdrop-blur-md transition-all duration-300 hover:scale-110 active:scale-90"
+            onClick={async (e) => {
+              e.stopPropagation();
+
+              const profile = getCurrentProfile();
+              if (!profile) return;
+
+              if (liked) {
+                await removeFavorite(profile.id, content.id);
+                setLiked(false);
+                window.dispatchEvent(new CustomEvent("favoriteToggle", { 
+                  detail: { mediaId: content.id, isFavorite: false } 
+                }));
+              } else {
+                await addFavorite(profile.id, content.id);
+                setLiked(true);
+                window.dispatchEvent(new CustomEvent("favoriteToggle", { 
+                  detail: { mediaId: content.id, isFavorite: true } 
+                }));
+              }
+            }}
+          >
+            <svg 
+              className={`w-4 h-4 transition-all duration-300 ${liked ? 'text-red-500 fill-red-500 scale-110' : 'text-white/70 hover:text-white fill-none'}`} 
+              viewBox="0 0 24 24" 
+              stroke="currentColor" 
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+            </svg>
+          </button>
 
           {/* Rating Badge */}
           {/* {content.rating && (

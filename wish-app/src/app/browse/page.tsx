@@ -42,17 +42,7 @@ export default function BrowsePage() {
           );
 
         setProfileMedia(data);
-        console.log("PROFILE MEDIA:", data);
-        // console.log("CURRENT PROFILE", getCurrentProfile());
-        console.log(
-          "PROFILE ID:",
-          profileId.id
-        );
 
-        console.log(
-          "MEDIA COUNT:",
-          data.length
-        );
       };
 
     loadMedia();
@@ -61,38 +51,61 @@ export default function BrowsePage() {
   }, []);
 
   useEffect(() => {
-
-    const fetchFavorites =
-    async () => {
-
-      const profileId =
-        getCurrentProfile();
-
+    const fetchFavorites = async () => {
+      const profileId = getCurrentProfile();
       if (!profileId) return;
-
       const data = await getFavorites(profileId.id);
-
       setFavorites(data);
     };
 
     fetchFavorites();
 
+    const handleFavoriteToggle = () => {
+      fetchFavorites();
+    };
+
+    window.addEventListener("favoriteToggle", handleFavoriteToggle);
+    return () => window.removeEventListener("favoriteToggle", handleFavoriteToggle);
   }, []);
   
-  // useEffect(()=>{
-  //   const fetchMovies=async()=>{
-  //     const data=await getMovies();
-  //     setMovies(data);
-  //   };
-  //   fetchMovies();
-  // },[])
 
   const mediaItems=profileMedia.map((item:any)=>item.media);
+
+
+  const categories = [
+    "Documentary",
+    "Sci-Fi",
+    "Fantasy",
+    "Nature",
+    "Adventure",
+    "Romance",
+    "Thriller",
+    "Action",
+    "Personal",
+    "Special",
+  ];
+
+  const categorizedMedia = categories.reduce(
+    (med: any, category) => {
+      med[category] = mediaItems.filter(
+        (m: any) =>
+          m.media_categories?.some(
+            (c: any) =>
+              c.category === category
+          )
+      );
+
+      return med;
+    },
+    {}
+  );
+
   const memories =
     mediaItems.filter(
       (m:any) =>
         m.media_type === "photo"
     );
+
 
   const videos =
     mediaItems.filter(
@@ -136,10 +149,10 @@ export default function BrowsePage() {
         <div className="flex-1 flex flex-col">
           {/* Hero Section */}
           {mediaItems.length>0 && (
-            <HeroBanner content={mediaItems[currentIndex]} />  
+            <HeroBanner  content={mediaItems[currentIndex]} />  
           )}
 
-          {/* Content Rows */}
+          {/* Content Rws */}
           <div className="-mt-16 sm:-mt-24 relative z-10 pb-16 flex flex-col gap-4 sm:gap-6">
           {/* <Row title="Top Picks for You" items={movies} id="top-picks" />
           <Row title="Memories" items={movies} id="memories" />
@@ -153,6 +166,17 @@ export default function BrowsePage() {
           <Row title="Continue Watching" items={[...movies].reverse()} id="continue-watching" />
           <Row title="Recently Added" items={[...movies].reverse()} id="recently-added" /> */}
 
+          {categories.map((category) =>
+            categorizedMedia[category]?.length > 0 ? (
+              <Row
+                key={category}
+                title={`🎬 ${category}`}
+                items={categorizedMedia[category]}
+                id={category.toLowerCase()}
+              />
+            ) : null
+          )}
+
           {movies.length > 0 && (
             <Row
               title="🎬 Movies"
@@ -160,6 +184,8 @@ export default function BrowsePage() {
               id="movies"
             />
           )}
+
+          
 
           {videos.length > 0 && (
             <Row
@@ -181,7 +207,7 @@ export default function BrowsePage() {
             <Row
               title="❤️ Favorites"
               items={favorites.map(
-                (f:any)=>f.movies
+                (f:any)=>f.media
               )}
               id="favorites"
             />

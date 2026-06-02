@@ -2,12 +2,14 @@
 
 import Image from "next/image";
 import { ContentItem } from "@/lib/mockData";
+import { useRouter } from "next/navigation";
 
 interface HeroBannerProps {
   content: any;
 }
 
 export default function HeroBanner({ content }: HeroBannerProps) {
+  const router=useRouter();
   console.log(content.thumbnail_url);
   return (
     <section
@@ -70,6 +72,7 @@ export default function HeroBanner({ content }: HeroBannerProps) {
             {/* Buttons */}
             <div className="flex items-center gap-4">
               <button
+                onClick={() => router.push(`/media/${content.id}`)}
                 className="relative group flex items-center w-[10vw] h-8 gap-3 px-7 sm:px-9 py-3.5 sm:py-4 
                 bg-white text-black font-semibold rounded text-sm sm:text-base 
                 transition-all duration-300 
