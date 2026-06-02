@@ -8,6 +8,7 @@ import { adminContent, categories } from "@/lib/mockData";
 import { supabase } from "../../../lib/supabaseClient";
 import { useEffect } from "react";
 import {useRef} from "react";
+import { v4 as uuidv4 } from "uuid";
 
 export default function AdminPage() {
 
@@ -106,7 +107,7 @@ export default function AdminPage() {
       // =========================
 
       const thumbnailName =
-        `${Date.now()}-${thumbnailFile.name}`;
+        `${uuidv4()}.${thumbnailFile.name.split(".").pop()}`;
 
       const {
         error: thumbnailError,
@@ -137,7 +138,7 @@ export default function AdminPage() {
       // =========================
 
       const mediaName =
-        `${Date.now()}-${mediaFile.name}`;
+        `${uuidv4()}.${mediaFile.name.split(".").pop()}`;
 
       const {
         error: mediaError,

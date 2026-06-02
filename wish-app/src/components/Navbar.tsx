@@ -22,20 +22,31 @@ export default function Navbar() {
 
   useEffect(() => {
     const getCurrentProfile=async()=>{
-      const selectedProfileId=localStorage.getItem("selectedProfileId");
-      if(!selectedProfileId) return;
-      const {data,error}=await supabase.from("profiles").select("*").eq("id",selectedProfileId).single();
+      const selectedProfile=localStorage.getItem("selectedProfile");
+      if(!selectedProfile) return;
 
-      console.log(data);
-      console.log(error);
+      try {
+        const parsedProfile = JSON.parse(selectedProfile);
+        const selectedProfileId = parsedProfile?.id;
+        if(!selectedProfileId) return;
 
-      if(data) setProfile(data);  
+        // const {data,error}=await supabase.from("profiles").select("*").eq("id",selectedProfileId).single();
+
+        // console.log(data);
+        // console.log(error);
+
+        // if(data) setProfile(data);  
+        setProfile(parsedProfile);  //this line was added in place of the above database call
+
+      } catch (err) {
+        console.error("Error parsing selected profile from localStorage", err);
+      }
     };
     getCurrentProfile();
     const handleScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [pathname]);
 
   const navLinks = [
     { href: "/browse", label: "Home" },
@@ -44,6 +55,7 @@ export default function Navbar() {
     { href: "/admin", label: "Admin" },
   ];
 
+  console.log("PROFILE STATE", profile);
   return (
     <nav
       style={{paddingLeft:'16px', paddingRight:'16px'}}

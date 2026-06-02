@@ -414,7 +414,8 @@ export default function ProfilesPage() {
                   setSelectedProfile(profile);
                   setEditName(profile.name);
                 }else{
-                  localStorage.setItem("selectedProfileId",profile.id);
+                  // localStorage.setItem("selectedProfileId",profile.id);
+                  localStorage.setItem("selectedProfile",JSON.stringify(profile));
                   window.location.href="/browse";
                 }
                 }} className={!manageMode ? "cursor-pointer" : "cursor-not-allowed"}  key={profile.id}

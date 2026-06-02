@@ -4,11 +4,12 @@ import Image from "next/image";
 import { ContentItem } from "@/lib/mockData";
 
 interface CardProps {
-  content: ContentItem;
+  content: any;
   index?: number;
 }
 
 export default function Card({ content, index = 0 }: CardProps) {
+  console.log(content.thumbnail_url);
   return (
     <div
       className="group relative flex-shrink-0 w-[160px] sm:w-[200px] md:w-[240px] lg:w-[280px] cursor-pointer animate-fade-in"
@@ -20,7 +21,7 @@ export default function Card({ content, index = 0 }: CardProps) {
         {/* Image */}
         <div className="relative aspect-[16/10] overflow-hidden">
           <Image
-            src={content.image}
+            src={content.thumbnail_url}
             alt={content.title}
             fill
             className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
@@ -31,11 +32,11 @@ export default function Card({ content, index = 0 }: CardProps) {
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-60 group-hover:opacity-90 transition-opacity duration-500" />
 
           {/* Rating Badge */}
-          {content.rating && (
+          {/* {content.rating && (
             <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/60 backdrop-blur-sm border border-white/10 text-[10px] font-semibold text-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               {content.rating}
             </div>
-          )}
+          )} */}
 
           {/* Play icon on hover */}
           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500">
@@ -52,14 +53,17 @@ export default function Card({ content, index = 0 }: CardProps) {
               {content.title}
             </h3>
             <div className="flex items-center gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">
-              {content.year && (
-                <span className="text-[11px] text-text-muted">{content.year}</span>
+              {content.created_at && (
+                <span className="text-[11px] text-text-muted">
+                  {new Date(content.created_at)
+                    .toLocaleDateString()}
+                </span>
               )}
-              {content.duration && (
+              {/* {content.duration && (
                 <span className="text-[11px] text-text-muted">
                   {content.duration}
                 </span>
-              )}
+              )} */}
               {content.category && (
                 <span className="text-[11px] text-accent font-medium">
                   {content.category}

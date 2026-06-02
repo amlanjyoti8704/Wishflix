@@ -4,10 +4,11 @@ import Image from "next/image";
 import { ContentItem } from "@/lib/mockData";
 
 interface HeroBannerProps {
-  content: ContentItem;
+  content: any;
 }
 
 export default function HeroBanner({ content }: HeroBannerProps) {
+  console.log(content.thumbnail_url);
   return (
     <section
       className="relative w-full h-[70vh] sm:h-[80vh] lg:h-[85vh] overflow-hidden"
@@ -16,7 +17,7 @@ export default function HeroBanner({ content }: HeroBannerProps) {
       {/* Background Image */}
       <div className="absolute inset-0">
         <Image
-          src={content.image}
+          src={content.thumbnail_url}
           alt={content.title}
           fill
           className="object-cover object-center"

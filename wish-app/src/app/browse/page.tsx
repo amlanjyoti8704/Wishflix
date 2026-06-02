@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import {getMovies} from "@/services/movieService";
 import { getFavorites } from "@/services/favoriteService";
 import { getCurrentProfile } from "@/lib/getCurrentProfile";
+import { getProfileMedia} from "@/services/mediaService";
 
   // import {
 //   heroContent,
@@ -17,9 +18,47 @@ import { getCurrentProfile } from "@/lib/getCurrentProfile";
 // } from "@/lib/mockData";
 
 export default function BrowsePage() {
+  
 
-  const [movies, setMovies]=useState<any[]>([]);
+  // const [movies, setMovies]=useState<any[]>([]);
   const [favorites, setFavorites] = useState<any[]>([]);
+  const [profileMedia, setProfileMedia] =
+  useState<any[]>([]);
+
+  useEffect(() => {
+
+    const loadMedia =
+      async () => {
+
+        const profileId = getCurrentProfile();
+        console.log("CURRENT PROFILE", profileId);
+        console.log("PROFILE ID", profileId?.id);
+
+        if (!profileId) return;
+
+        const data =
+          await getProfileMedia(
+            profileId.id
+          );
+
+        setProfileMedia(data);
+        console.log("PROFILE MEDIA:", data);
+        // console.log("CURRENT PROFILE", getCurrentProfile());
+        console.log(
+          "PROFILE ID:",
+          profileId.id
+        );
+
+        console.log(
+          "MEDIA COUNT:",
+          data.length
+        );
+      };
+
+    loadMedia();
+    
+
+  }, []);
 
   useEffect(() => {
 
@@ -31,7 +70,7 @@ export default function BrowsePage() {
 
       if (!profileId) return;
 
-      const data = await getFavorites(profileId);
+      const data = await getFavorites(profileId.id);
 
       setFavorites(data);
     };
@@ -40,27 +79,69 @@ export default function BrowsePage() {
 
   }, []);
   
+  // useEffect(()=>{
+  //   const fetchMovies=async()=>{
+  //     const data=await getMovies();
+  //     setMovies(data);
+  //   };
+  //   fetchMovies();
+  // },[])
+
+  const mediaItems=profileMedia.map((item:any)=>item.media);
+  const memories =
+    mediaItems.filter(
+      (m:any) =>
+        m.media_type === "photo"
+    );
+
+  const videos =
+    mediaItems.filter(
+      (m:any) =>
+        m.media_type === "video"
+    );
+
+  const movies =
+    mediaItems.filter(
+      (m:any) =>
+        m.media_type === "movie"
+    );
+
+  console.log(
+    "THUMBNAIL:",
+    mediaItems[0]?.thumbnail_url
+  );
+  console.log(
+  JSON.stringify(
+    mediaItems[0],
+    null,
+    2
+  )
+);
+
+  const [currentIndex, setCurrentIndex]=useState(0);
+
   useEffect(()=>{
-    const fetchMovies=async()=>{
-      const data=await getMovies();
-      setMovies(data);
-    };
-    fetchMovies();
-  },[])
+    if(mediaItems.length===0) return;
+    const interval=setInterval(()=>{
+      setCurrentIndex((prev)=>(prev+1)%mediaItems.length);
+    },10000); //10seconds
+    return ()=>clearInterval(interval);
+  },[mediaItems.length]);
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-bg-primary">
+      <div className="min-h-screen flex flex-col bg-bg-primary">
         <Navbar />
 
-        {/* Hero Section */}
-        {movies.length>0 && (
-        <HeroBanner content={movies[0]} />
-        )}
+        <div className="flex-1 flex flex-col">
+          {/* Hero Section */}
+          {mediaItems.length>0 && (
+            <HeroBanner content={mediaItems[currentIndex]} />  
+          )}
 
-        {/* Content Rows */}
-        <div className="-mt-16 sm:-mt-24 relative z-10 pb-16 flex flex-col gap-4 sm:gap-6">
-          <Row title="Top Picks for You" items={movies} id="top-picks" />
+          {/* Content Rows */}
+          <div className="-mt-16 sm:-mt-24 relative z-10 pb-16 flex flex-col gap-4 sm:gap-6">
+          {/* <Row title="Top Picks for You" items={movies} id="top-picks" />
           <Row title="Memories" items={movies} id="memories" />
           <Row
             title="✨ Special Moments"
@@ -70,11 +151,47 @@ export default function BrowsePage() {
           />
           <Row title="Favorites" items={favorites.map((f:any)=>f.movies)} id="my-list" />
           <Row title="Continue Watching" items={[...movies].reverse()} id="continue-watching" />
-          <Row title="Recently Added" items={[...movies].reverse()} id="recently-added" />
+          <Row title="Recently Added" items={[...movies].reverse()} id="recently-added" /> */}
+
+          {movies.length > 0 && (
+            <Row
+              title="🎬 Movies"
+              items={movies}
+              id="movies"
+            />
+          )}
+
+          {videos.length > 0 && (
+            <Row
+              title="🎥 Videos"
+              items={videos}
+              id="videos"
+            />
+          )}
+
+          {memories.length > 0 && (
+            <Row
+              title="📸 Memories"
+              items={memories}
+              id="memories"
+            />
+          )}
+
+          {favorites.length > 0 && (
+            <Row
+              title="❤️ Favorites"
+              items={favorites.map(
+                (f:any)=>f.movies
+              )}
+              id="favorites"
+            />
+          )}
+
+          </div>
         </div>
 
         {/* Footer */}
-        <footer className="border-t border-border py-12 px-4 sm:px-6 lg:px-12">
+        <footer className="border-t border-border py-12 px-4 sm:px-6 lg:px-12 mt-auto">
           <div className="max-w-[1440px] mx-auto">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-8">
               <div>
