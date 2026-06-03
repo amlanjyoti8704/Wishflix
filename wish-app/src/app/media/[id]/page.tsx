@@ -318,7 +318,7 @@ export default function MediaPage() {
       
         const duration = videoRef.current.duration;
 
-          if (duration > 0 && progress / duration > 0.95) {
+          if ((duration > 0 && progress / duration > 0.95)||(progress===0)) {
             // remove from continue_watching
             await removeContinueWatching(profile.id, media.id);
             window.dispatchEvent(

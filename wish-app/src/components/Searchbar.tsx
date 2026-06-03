@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import { searchMemories } from "@/services/aiSearchService";
 
 interface SearchbarProps {
   mediaItems: any[];
@@ -12,6 +13,7 @@ export default function Searchbar({ mediaItems, onSearchResults }: SearchbarProp
   const [isOpen, setIsOpen] = useState(false);
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [resultCount, setResultCount]=useState(0);
+  const [aiMode, setAiMode] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -40,26 +42,64 @@ export default function Searchbar({ mediaItems, onSearchResults }: SearchbarProp
 
   // Filter and emit results
   useEffect(() => {
-    if (debouncedQuery.length < 2) {
-      onSearchResults?.([], "");
-      return;
-    }
 
-    const filtered = mediaItems.filter((media: any) => {
-      const query = debouncedQuery.toLowerCase();
-      const titleMatch = media.title?.toLowerCase().includes(query);
-      const descriptionMatch = media.description?.toLowerCase().includes(query);
-      const categoryMatch = media.media_categories?.some((c: any) =>
-        c.category.toLowerCase().includes(query)
-      );
-      const typeMatch = media.media_type?.toLowerCase().includes(query);
-      return titleMatch || descriptionMatch || categoryMatch || typeMatch;
-    });
+    const runSearch=async()=>{
+        if (debouncedQuery.length < 2) {
+        onSearchResults?.([], "");
+        return;
+        }
+
+    const filtered =
+        aiMode
+            ? searchMemories(
+                debouncedQuery,
+                mediaItems
+            )
+            : mediaItems.filter((media:any) => {
+
+                const query =
+                debouncedQuery
+                    .toLowerCase();
+
+                const titleMatch =
+                media.title
+                    ?.toLowerCase()
+                    .includes(query);
+
+                const descriptionMatch =
+                media.description
+                    ?.toLowerCase()
+                    .includes(query);
+
+                const categoryMatch =
+                media.media_categories
+                    ?.some(
+                    (c:any) =>
+                        c.category
+                        .toLowerCase()
+                        .includes(query)
+                    );
+
+                const typeMatch =
+                media.media_type
+                    ?.toLowerCase()
+                    .includes(query);
+
+                return (
+                titleMatch ||
+                descriptionMatch ||
+                categoryMatch ||
+                typeMatch
+                );
+            });
 
     setResultCount(filtered.length);
 
     onSearchResults?.(filtered, debouncedQuery);
-  }, [debouncedQuery, mediaItems, onSearchResults]);
+    }
+    runSearch();
+
+  }, [debouncedQuery, mediaItems, onSearchResults, aiMode]);
 
   // Focus input when opened
   useEffect(() => {
@@ -114,22 +154,47 @@ export default function Searchbar({ mediaItems, onSearchResults }: SearchbarProp
           ${isOpen ? "w-52 sm:w-64 md:w-72 opacity-100 ml-1" : "w-0 opacity-0 ml-0"}
         `}
       >
-        <div className="relative">
+        <div className="relative flex items-center gap-1">
+            <button
+                onClick={() =>
+                    setAiMode(!aiMode)
+                }
+                style={{padding:"10px"}}
+                className="
+                    text-md
+                    px-2
+                    py-1
+                    rounded-md
+                    transition-all
+                    duration-300
+                    bg-transparent
+                    cursor-pointer
+                    hover:border-white/60
+                    hover:bg-white/20
+                "
+            >
+                {aiMode
+                    ? "✨"
+                    : "N"}
+            </button>
           <input
             ref={inputRef}
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Titles, genres, descriptions…"
+            placeholder="  Titles, genres, descriptions…"
             className="
               w-full pl-3 pr-8 py-[7px]
-              bg-black/60 backdrop-blur-xl
+              bg-black/10 backdrop-blur-sm
               border border-white/20 rounded-lg
               text-sm text-white placeholder:text-white/40
-              focus:outline-none focus:border-red-500/60 focus:ring-1 focus:ring-red-500/20
+              focus:outline-none focus:border-gray-500/60 focus:ring-1 focus:ring-gray-500/20
               transition-all duration-300
             "
+            style={{
+                padding:"10px"
+            }}
           />
           {/* Clear button */}
           {searchQuery && (

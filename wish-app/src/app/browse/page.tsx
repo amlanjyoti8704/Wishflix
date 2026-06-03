@@ -341,7 +341,7 @@ export default function BrowsePage() {
                         <button
                           key={type}
                           onClick={() => setSelectedType(type)}
-                          style={{padding:"10px"}}
+                          style={{ padding: "10px" }}
                           className={`
                           px-3 sm:px-4 py-1.5 rounded-md text-xs font-semibold transition-all duration-250 cursor-pointer whitespace-nowrap
                           ${isActive
@@ -374,7 +374,7 @@ export default function BrowsePage() {
                       transition-all duration-200
                     "
                       style={{
-                        padding:"8px",
+                        padding: "8px",
                         color: selectedCategory !== "All" ? "white" : undefined,
                         borderColor: selectedCategory !== "All" ? "rgba(220,38,38,0.4)" : undefined,
                       }}
@@ -406,7 +406,7 @@ export default function BrowsePage() {
                       transition-all duration-200
                     "
                       style={{
-                        padding:"8px",
+                        padding: "8px",
                         color: sortBy !== "Newest" ? "white" : undefined,
                         borderColor: sortBy !== "Newest" ? "rgba(220,38,38,0.4)" : undefined,
                       }}
