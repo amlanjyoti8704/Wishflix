@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { searchMemories } from "@/services/aiSearchService";
+import { saveSearch,getSearchHistory,clearSearchHistory, removeFromHistory } from "@/services/searchHistoryService";
 
 interface SearchbarProps {
   mediaItems: any[];
@@ -14,9 +15,20 @@ export default function Searchbar({ mediaItems, onSearchResults }: SearchbarProp
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [resultCount, setResultCount]=useState(0);
   const [aiMode, setAiMode] = useState(false);
+  const [history, setHistory]= useState<string[]>([])
+  
 
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // save history for search
+  useEffect(() => {
+
+    setHistory(
+      getSearchHistory()
+    );
+
+  }, []);
 
   // Click outside to close
   useEffect(() => {
@@ -45,57 +57,58 @@ export default function Searchbar({ mediaItems, onSearchResults }: SearchbarProp
 
     const runSearch=async()=>{
         if (debouncedQuery.length < 2) {
+        setHistory(getSearchHistory());
         onSearchResults?.([], "");
         return;
         }
 
-    const filtered =
-        aiMode
-            ? searchMemories(
-                debouncedQuery,
-                mediaItems
-            )
-            : mediaItems.filter((media:any) => {
+        const filtered =
+            aiMode
+                ? searchMemories(
+                    debouncedQuery,
+                    mediaItems
+                )
+                : mediaItems.filter((media:any) => {
 
-                const query =
-                debouncedQuery
-                    .toLowerCase();
+                    const query =
+                    debouncedQuery
+                        .toLowerCase();
 
-                const titleMatch =
-                media.title
-                    ?.toLowerCase()
-                    .includes(query);
+                    const titleMatch =
+                    media.title
+                        ?.toLowerCase()
+                        .includes(query);
 
-                const descriptionMatch =
-                media.description
-                    ?.toLowerCase()
-                    .includes(query);
+                    const descriptionMatch =
+                    media.description
+                        ?.toLowerCase()
+                        .includes(query);
 
-                const categoryMatch =
-                media.media_categories
-                    ?.some(
-                    (c:any) =>
-                        c.category
-                        .toLowerCase()
-                        .includes(query)
+                    const categoryMatch =
+                    media.media_categories
+                        ?.some(
+                        (c:any) =>
+                            c.category
+                            .toLowerCase()
+                            .includes(query)
+                        );
+
+                    const typeMatch =
+                    media.media_type
+                        ?.toLowerCase()
+                        .includes(query);
+
+                    return (
+                    titleMatch ||
+                    descriptionMatch ||
+                    categoryMatch ||
+                    typeMatch
                     );
+                });
 
-                const typeMatch =
-                media.media_type
-                    ?.toLowerCase()
-                    .includes(query);
+        setResultCount(filtered.length);
 
-                return (
-                titleMatch ||
-                descriptionMatch ||
-                categoryMatch ||
-                typeMatch
-                );
-            });
-
-    setResultCount(filtered.length);
-
-    onSearchResults?.(filtered, debouncedQuery);
+        onSearchResults?.(filtered, debouncedQuery);
     }
     runSearch();
 
@@ -115,8 +128,12 @@ export default function Searchbar({ mediaItems, onSearchResults }: SearchbarProp
         setIsOpen(false);
         setSearchQuery("");
       }
+      if (e.key === "Enter" && searchQuery.trim()) {
+        saveSearch(searchQuery);
+        setHistory(getSearchHistory());
+      }
     },
-    []
+    [searchQuery]
   );
 
   return (
@@ -196,14 +213,16 @@ export default function Searchbar({ mediaItems, onSearchResults }: SearchbarProp
                 padding:"10px"
             }}
           />
+
+
           {/* Clear button */}
           {searchQuery && (
             <button
-              onClick={() => {
-                setSearchQuery("");
-                inputRef.current?.focus();
-              }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors cursor-pointer"
+            onClick={() => {
+              setSearchQuery("");
+              inputRef.current?.focus();
+            }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors cursor-pointer"
             >
               <svg
                 className="w-3 h-3 text-white/60"
@@ -211,16 +230,124 @@ export default function Searchbar({ mediaItems, onSearchResults }: SearchbarProp
                 viewBox="0 0 24 24"
                 stroke="currentColor"
                 strokeWidth={2.5}
-              >
+                >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   d="M6 18L18 6M6 6l12 12"
-                />
+                  />
               </svg>
             </button>
           )}
         </div>
+          {/* Recent searches dropdown */}
+          {isOpen && searchQuery.length === 0 && history.length > 0 && (
+            <div
+              className="
+                absolute left-0 top-[calc(100%+6px)] w-full
+                bg-black/30 
+                border border-white/[0.08]
+                rounded-md
+                p-1.5
+                z-50
+                shadow-[0_8px_32px_rgba(0,0,0,0.4)]
+                animate-fade-in
+              "
+              style={{padding:"8px"}}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-2.5 py-1.5">
+                <span className="text-[11px] font-medium tracking-wide uppercase text-white/35">
+                  Recent
+                </span>
+                <button
+                  onClick={() => {
+                    clearSearchHistory();
+                    setHistory([]);
+                  }}
+                  className="
+                    text-[10px] font-medium tracking-wide
+                    text-white/30 hover:text-red-400
+                    px-2 py-0.5 rounded-md
+                    hover:bg-white/[0.06]
+                    transition-all duration-200
+                    cursor-pointer
+                  "
+                >
+                  Clear all
+                </button>
+              </div>
+
+              {/* Divider */}
+              <div className="mx-2 mb-1 border-t border-white/[0.06]" />
+
+              {/* History items */}
+              <div className="flex flex-col gap-1.5">
+                {history.map((item, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setSearchQuery(item)}
+                    className="
+                      group flex items-center justify-between gap-2.5
+                      w-full text-left
+                      px-2.5 py-2 rounded-lg
+                      text-sm text-white/60
+                      hover:text-white/90
+                      hover:bg-white/[0.07]
+                      active:bg-white/[0.1]
+                      transition-all duration-200
+                    
+                    "
+                    style={{padding:"6px"}}
+                  >
+                    {/* Clock icon */}
+                    <div
+                      className="flex items-center gap-2.5"
+                    >
+                      <svg
+                        className="w-3.5 h-3.5 text-white/25 group-hover:text-white/50 transition-colors duration-200 shrink-0"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M12 6v6l4 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <span className="truncate">{item}</span>
+                    </div>
+                    <div className="z-50">
+                      <button
+                        className="w-3.5 h-3.5 cursor-pointer text-white/25 group-hover:text-white/50 transition-colors duration-200 shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeFromHistory(item);
+                          setHistory(getSearchHistory());
+                        }}
+                      >
+                       <svg
+                        className="w-3.5 h-3.5 text-white/25 group-hover:text-white/50 transition-colors duration-200 shrink-0"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                       >
+                         <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                       </svg>
+                      </button>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
       </div>
 
       {/* Inline result count badge */}

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { getCurrentProfile } from "@/lib/getCurrentProfile";
 import { addFavorite, removeFavorite, isFavorite } from "@/services/favoriteService";
+import { Sparkles } from "lucide-react";
 
 
 interface CardProps {
@@ -145,6 +146,13 @@ export default function Card({ content, index = 0 }: CardProps) {
             <h3 className="text-sm sm:text-base font-bold text-white leading-tight truncate">
                 {content.title}
             </h3>
+            {
+              content.reasons?.length > 0 && (
+                <p className="text-[10px] text-white/50 flex gap-1">
+                  <Sparkles className="w-4 h-4" /> {content.reasons[0]}
+                </p>
+              )
+            }
             {
               content.progress_seconds > 0 && (
                 <p className="text-[10px] text-white/70">
