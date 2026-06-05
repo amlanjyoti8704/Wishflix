@@ -16,7 +16,7 @@ interface CardProps {
 
 export default function Card({ content, index = 0 }: CardProps) {
   const [liked, setLiked] = useState(false);
-  const router=useRouter();
+  const router = useRouter();
 
 
   useEffect(() => {
@@ -40,17 +40,17 @@ export default function Card({ content, index = 0 }: CardProps) {
     return () => window.removeEventListener("favoriteToggle", handleFavoriteToggle);
   }, [content.id]);
 
-  
 
-  const progressPercent = content.duration_seconds?(content.progress_seconds/content.duration_seconds)*100:0;
 
-  const remainingMinutes =content.duration_seconds
+  const progressPercent = content.duration_seconds ? (content.progress_seconds / content.duration_seconds) * 100 : 0;
+
+  const remainingMinutes = content.duration_seconds
     ? Math.ceil(
-        (
-          content.duration_seconds -
-          content.progress_seconds
-        ) / 60
-      )
+      (
+        content.duration_seconds -
+        content.progress_seconds
+      ) / 60
+    )
     : 0;
 
   console.log(content.thumbnail_url);
@@ -103,22 +103,22 @@ export default function Card({ content, index = 0 }: CardProps) {
               if (liked) {
                 await removeFavorite(profile.id, content.id);
                 setLiked(false);
-                window.dispatchEvent(new CustomEvent("favoriteToggle", { 
-                  detail: { mediaId: content.id, isFavorite: false } 
+                window.dispatchEvent(new CustomEvent("favoriteToggle", {
+                  detail: { mediaId: content.id, isFavorite: false }
                 }));
               } else {
                 await addFavorite(profile.id, content.id);
                 setLiked(true);
-                window.dispatchEvent(new CustomEvent("favoriteToggle", { 
-                  detail: { mediaId: content.id, isFavorite: true } 
+                window.dispatchEvent(new CustomEvent("favoriteToggle", {
+                  detail: { mediaId: content.id, isFavorite: true }
                 }));
               }
             }}
           >
-            <svg 
-              className={`w-4 h-4 transition-all duration-300 ${liked ? 'text-red-500 fill-red-500 scale-110' : 'text-white/70 hover:text-white fill-none'}`} 
-              viewBox="0 0 24 24" 
-              stroke="currentColor" 
+            <svg
+              className={`w-4 h-4 transition-all duration-300 ${liked ? 'text-red-500 fill-red-500 scale-110' : 'text-white/70 hover:text-white fill-none'}`}
+              viewBox="0 0 24 24"
+              stroke="currentColor"
               strokeWidth={2}
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
@@ -142,10 +142,17 @@ export default function Card({ content, index = 0 }: CardProps) {
           </div>
 
           {/* Content Info (appears on hover) */}
-          <div className="absolute bottom-0 left-0 right-0 p-3 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
+          <div className="absolute bottom-2 left-0 right-0 p-3 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
             <h3 className="text-sm sm:text-base font-bold text-white leading-tight truncate">
-                {content.title}
+              {content.title}
             </h3>
+            {
+              content.similarity && (
+                <p className="text-[10px] text-emerald-400">
+                  AI Match • {(content.similarity * 100).toFixed(0)}%
+                </p>
+              )
+            }
             {
               content.reasons?.length > 0 && (
                 <p className="text-[10px] text-white/50 flex gap-1">

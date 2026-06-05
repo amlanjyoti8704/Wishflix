@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { searchMemories } from "@/services/aiSearchService";
+import { searchMemories, getSuggestions } from "@/services/aiSearchService";
 import { saveSearch,getSearchHistory,clearSearchHistory, removeFromHistory } from "@/services/searchHistoryService";
+import { semanticSearch } from "@/services/semanticSearchService";
+import { getCurrentProfile } from "@/lib/getCurrentProfile";
 
 interface SearchbarProps {
   mediaItems: any[];
@@ -16,6 +18,7 @@ export default function Searchbar({ mediaItems, onSearchResults }: SearchbarProp
   const [resultCount, setResultCount]=useState(0);
   const [aiMode, setAiMode] = useState(false);
   const [history, setHistory]= useState<string[]>([])
+  const [suggestions, setSuggestions]= useState<string[]>([])
   
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -44,11 +47,21 @@ export default function Searchbar({ mediaItems, onSearchResults }: SearchbarProp
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // get AI Suggestions based on query
+  useEffect(() => {
+    setSuggestions(
+      getSuggestions(
+        searchQuery
+      )
+    );
+
+  }, [searchQuery]);
+
   // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(searchQuery);
-    }, 300);
+    }, 500);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
@@ -56,7 +69,7 @@ export default function Searchbar({ mediaItems, onSearchResults }: SearchbarProp
   useEffect(() => {
 
     const runSearch=async()=>{
-        if (debouncedQuery.length < 2) {
+        if (debouncedQuery.length < 3) {
         setHistory(getSearchHistory());
         onSearchResults?.([], "");
         return;
@@ -64,9 +77,9 @@ export default function Searchbar({ mediaItems, onSearchResults }: SearchbarProp
 
         const filtered =
             aiMode
-                ? searchMemories(
+                ? await semanticSearch(
                     debouncedQuery,
-                    mediaItems
+                    getCurrentProfile().id
                 )
                 : mediaItems.filter((media:any) => {
 
@@ -284,7 +297,7 @@ export default function Searchbar({ mediaItems, onSearchResults }: SearchbarProp
               {/* History items */}
               <div className="flex flex-col gap-1.5">
                 {history.map((item, idx) => (
-                  <button
+                  <div
                     key={idx}
                     onClick={() => setSearchQuery(item)}
                     className="
@@ -343,11 +356,72 @@ export default function Searchbar({ mediaItems, onSearchResults }: SearchbarProp
                        </svg>
                       </button>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             </div>
           )}
+          {
+            isOpen &&
+            searchQuery.length!==0 &&
+            suggestions.length > 0 && (
+              <div
+                className="
+                  absolute
+                  top-full
+                  mt-2
+                  left-0
+                  w-full
+                  bg-black/90
+                  rounded-xl
+                  border
+                  border-white/10
+                  p-2
+                "
+              >
+
+                <div
+                  className="
+                    text-xs
+                    text-white/50
+                    mb-2
+                  "
+                >
+                  Suggestions
+                </div>
+
+                {
+                  suggestions.map(
+                    (item, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() =>{
+                          setSearchQuery(item)
+                          saveSearch(item)
+                          setHistory(getSearchHistory())
+                        }
+                        }
+                        className="
+                          block
+                          w-full
+                          text-left
+                          px-2
+                          py-2
+                          rounded-lg
+                          hover:bg-white/10
+                          text-sm
+                          text-white/70
+                        "
+                      >
+                        ✨ {item}
+                      </button>
+                    )
+                  )
+                }
+
+              </div>
+            )
+          }
       </div>
 
       {/* Inline result count badge */}

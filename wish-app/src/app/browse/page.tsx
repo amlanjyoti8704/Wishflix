@@ -462,7 +462,7 @@ export default function BrowsePage() {
                   />
                 </div>
               ) : (
-                <div className="px-4 sm:px-6 lg:px-12 py-6">
+                <div style={{ marginTop: "100px" }} className="px-4 sm:px-6 lg:px-12 py-6">
                   <h2 className="text-lg font-bold text-white/90 mb-3">
                     🔍 No results for &ldquo;<span className="text-accent">{searchQuery}</span>&rdquo;
                   </h2>

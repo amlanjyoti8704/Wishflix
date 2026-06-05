@@ -83,3 +83,32 @@ export const searchMemories = (
         b.score - a.score
     );
 };
+
+
+export const getSuggestions = (
+  query: string
+) => {
+
+  const suggestions = [
+    "birthday celebration",
+    "family vacation",
+    "college memories",
+    "nature videos",
+    "trip with friends",
+    "special moments",
+    "romantic memories"
+  ];
+
+  if (!query) {
+    return suggestions.slice(0, 5);
+  }
+
+  return suggestions.filter(
+    item =>
+      item
+        .toLowerCase()
+        .includes(
+          query.toLowerCase()
+        )
+  );
+};
