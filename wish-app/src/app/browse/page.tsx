@@ -104,10 +104,26 @@ export default function BrowsePage() {
 
         if (!profile) return;
 
-        const data =
-          await getContinueWatching(
-            profile.id
+        const { data:{ session } } = await supabase.auth.getSession();
+
+        const response = await fetch(
+            "/api/continue-watching",
+            {
+              method:"POST",
+              headers:{
+                "Content-Type":
+                  "application/json"
+              },
+              body: JSON.stringify({
+                profileId: profile.id,
+                accessToken:
+                  session?.access_token
+              })
+            }
           );
+
+        const data =
+          await response.json();
 
         setContinueWatching(data);
       };

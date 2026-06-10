@@ -12,6 +12,7 @@ import { getCurrentProfile } from "@/lib/getCurrentProfile";
 import { addRecentlyViewed } from "@/services/recentlyViewedService";
 import { saveProgress, getProgress, removeContinueWatching } from "@/services/continueWatchingService";
 import { clearRecentlyViewedCache } from "@/services/recentlyViewedCacheActions";
+import { clearContinueWatchingCache } from "@/services/continueWatchingCacheActions";
 
 export default function MediaPage() {
   const router = useRouter();
@@ -78,6 +79,10 @@ export default function MediaPage() {
           media.id,
           videoRef.current.currentTime,
           videoRef.current.duration
+        );
+
+        await clearContinueWatchingCache(
+          profile.id
         );
 
         window.dispatchEvent(
@@ -330,6 +335,7 @@ export default function MediaPage() {
           if ((duration > 0 && progress / duration > 0.95)||(progress===0)) {
             // remove from continue_watching
             await removeContinueWatching(profile.id, media.id);
+            await clearContinueWatchingCache(profile.id);
             window.dispatchEvent(
               new CustomEvent(
                 "continueWatchingUpdated"
@@ -348,6 +354,9 @@ export default function MediaPage() {
             media.id,
             videoRef.current.currentTime,
             videoRef.current.duration
+          );
+          await clearContinueWatchingCache(
+            profile.id
           );
 
           window.dispatchEvent(
@@ -371,24 +380,31 @@ export default function MediaPage() {
   useEffect(() => {
     return () => {
 
-      const profile =
-        getCurrentProfile();
+      const profile = getCurrentProfile();
+      const video = videoRef.current;
 
       if (
-        profile &&
-        media &&
-        videoRef.current &&
-        isVideo
+        !profile ||
+        !media ||
+        !video ||
+        !isVideo
       ) {
-
-        saveProgress(
+        return;
+      }
+      (async()=>{
+        await saveProgress(
           profile.id,
           media.id,
-          videoRef.current.currentTime,
-          videoRef.current.duration
+          video.currentTime,
+          video.duration
         );
 
-      }
+        await clearContinueWatchingCache( profile.id );
+
+        window.dispatchEvent(
+          new CustomEvent("continueWatchingUpdated")
+        );
+      })();
 
     };
 
