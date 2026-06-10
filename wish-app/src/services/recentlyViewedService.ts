@@ -22,10 +22,14 @@ async (
             "profile_id,media_id",
         }
       );
+    
 
   if(error){
     console.log(error);
+    return false;
   }
+
+  return true;
 };
 
 export const getRecentlyViewed =

@@ -10,6 +10,7 @@ import { getCurrentProfile } from "@/lib/getCurrentProfile";
 import { getProfileMedia } from "@/services/mediaService";
 import { getRecentlyViewed } from "@/services/recentlyViewedService";
 import { getContinueWatching } from "@/services/continueWatchingService";
+import {supabase} from "../../../lib/supabaseClient";
 
 
 // import {
@@ -61,15 +62,28 @@ export default function BrowsePage() {
 
         if (!profileId) return;
 
-        const data =
-          await getProfileMedia(
-            profileId.id
-          );
+        const { data: { session } } =
+          await supabase.auth.getSession();
 
-        const recentData =
-          await getRecentlyViewed(
-            profileId.id
-          );
+        const [data, response] = await Promise.all([
+          getProfileMedia(profileId.id),
+          fetch(
+            "/api/recently-viewed",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+              body: JSON.stringify({
+                profileId: profileId.id,
+                accessToken: session?.access_token,
+              }),
+            }
+          )
+        ]);
+
+        const recentData = await response.json();
 
         setRecentlyViewed(recentData);
         setProfileMedia(data);
@@ -78,7 +92,6 @@ export default function BrowsePage() {
 
 
     loadMedia();
-
 
   }, []);
 
@@ -653,3 +666,4 @@ export default function BrowsePage() {
     </ProtectedRoute>
   );
 }
+

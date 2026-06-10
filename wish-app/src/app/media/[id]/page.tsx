@@ -11,6 +11,7 @@ import {
 import { getCurrentProfile } from "@/lib/getCurrentProfile";
 import { addRecentlyViewed } from "@/services/recentlyViewedService";
 import { saveProgress, getProgress, removeContinueWatching } from "@/services/continueWatchingService";
+import { clearRecentlyViewedCache } from "@/services/recentlyViewedCacheActions";
 
 export default function MediaPage() {
   const router = useRouter();
@@ -222,10 +223,18 @@ export default function MediaPage() {
           !media
         ) return;
 
-        await addRecentlyViewed(
+        const updated = await addRecentlyViewed(
           profile.id,
           media.id
         );
+
+        if(updated){
+          await clearRecentlyViewedCache(
+            profile.id
+          );
+          console.log("CACHE CLEARED");
+        }
+        
       };
 
     saveView();
