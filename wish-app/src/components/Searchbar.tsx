@@ -5,6 +5,7 @@ import { searchMemories, getSuggestions } from "@/services/aiSearchService";
 import { saveSearch,getSearchHistory,clearSearchHistory, removeFromHistory } from "@/services/searchHistoryService";
 import { semanticSearch } from "@/services/semanticSearchService";
 import { getCurrentProfile } from "@/lib/getCurrentProfile";
+import { supabase } from "../../lib/supabaseClient";
 
 interface SearchbarProps {
   mediaItems: any[];
@@ -61,7 +62,7 @@ export default function Searchbar({ mediaItems, onSearchResults }: SearchbarProp
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(searchQuery);
-    }, 500);
+    }, 1000);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
@@ -75,49 +76,123 @@ export default function Searchbar({ mediaItems, onSearchResults }: SearchbarProp
         return;
         }
 
-        const filtered =
-            aiMode
-                ? await semanticSearch(
-                    debouncedQuery,
-                    getCurrentProfile().id
-                )
-                : mediaItems.filter((media:any) => {
+        // const filtered =
+        //     aiMode
+        //         ? await semanticSearch(
+        //             debouncedQuery,
+        //             getCurrentProfile().id
+        //         )
+        //         : mediaItems.filter((media:any) => {
 
-                    const query =
+        //             const query =
+        //             debouncedQuery
+        //                 .toLowerCase();
+
+        //             const titleMatch =
+        //             media.title
+        //                 ?.toLowerCase()
+        //                 .includes(query);
+
+        //             const descriptionMatch =
+        //             media.description
+        //                 ?.toLowerCase()
+        //                 .includes(query);
+
+        //             const categoryMatch =
+        //             media.media_categories
+        //                 ?.some(
+        //                 (c:any) =>
+        //                     c.category
+        //                     .toLowerCase()
+        //                     .includes(query)
+        //                 );
+
+        //             const typeMatch =
+        //             media.media_type
+        //                 ?.toLowerCase()
+        //                 .includes(query);
+
+        //             return (
+        //             titleMatch ||
+        //             descriptionMatch ||
+        //             categoryMatch ||
+        //             typeMatch
+        //             );
+        //         });
+
+        let filtered;
+        const profile=getCurrentProfile();
+        if (!profile) return;
+        const { data:{ session } } = await supabase.auth.getSession();
+        
+        if (aiMode) {
+
+          // filtered =
+          //   await semanticSearch(
+          //     debouncedQuery,
+          //     profile.id
+          //   );
+
+          const response =
+            await fetch(
+              "/api/semantic-search",
+              {
+                method:"POST",
+                headers:{
+                  "Content-Type":
+                    "application/json"
+                },
+                body:JSON.stringify({
+                  profileId:
+                    profile.id,
+                  query:
                     debouncedQuery
-                        .toLowerCase();
+                })
+              }
+            );
 
-                    const titleMatch =
-                    media.title
-                        ?.toLowerCase()
-                        .includes(query);
+          const data =
+            await response.json();
 
-                    const descriptionMatch =
-                    media.description
-                        ?.toLowerCase()
-                        .includes(query);
+          console.log(
+            "AI SEARCH SOURCE:",
+            data.source
+          );
 
-                    const categoryMatch =
-                    media.media_categories
-                        ?.some(
-                        (c:any) =>
-                            c.category
-                            .toLowerCase()
-                            .includes(query)
-                        );
+          filtered =
+            data.results;
 
-                    const typeMatch =
-                    media.media_type
-                        ?.toLowerCase()
-                        .includes(query);
+        } else {
 
-                    return (
-                    titleMatch ||
-                    descriptionMatch ||
-                    categoryMatch ||
-                    typeMatch
-                    );
-                });
+          const response =
+            await fetch(
+              "/api/search",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type":
+                    "application/json",
+                  Authorization: `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify({
+                  profileId: profile.id,
+                  query: debouncedQuery,
+                  // accessToken: session?.access_token
+                }),
+              }
+            );
+
+          const data =
+            await response.json();
+
+          console.log(
+            "SEARCH SOURCE:",
+            data.source
+          );
+
+          filtered =
+            data.results || [];
+        }
 
         setResultCount(filtered.length);
 
@@ -125,7 +200,7 @@ export default function Searchbar({ mediaItems, onSearchResults }: SearchbarProp
     }
     runSearch();
 
-  }, [debouncedQuery, mediaItems, onSearchResults, aiMode]);
+  }, [debouncedQuery, onSearchResults, aiMode]);
 
   // Focus input when opened
   useEffect(() => {

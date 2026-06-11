@@ -34,7 +34,7 @@ export async function getRecentlyViewedCached(
   if (cached) {
 
     console.log(
-      "REDIS HIT:",
+      "RECENTLY VIEWED REDIS HIT:",
       profileId
     );
 
@@ -42,7 +42,7 @@ export async function getRecentlyViewedCached(
   }
 
   console.log(
-    "REDIS MISS:",
+    "RECENTLY VIEWED REDIS MISS:",
     profileId
   );
 
