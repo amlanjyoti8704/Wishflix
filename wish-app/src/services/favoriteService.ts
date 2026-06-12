@@ -1,4 +1,5 @@
 import { supabase } from "../../lib/supabaseClient";
+import { saveMemory } from "./memoryService";
 
 // export const addFavorite = async (
 //   profileId: string,
@@ -18,7 +19,8 @@ import { supabase } from "../../lib/supabaseClient";
 
 export const addFavorite = async (
   profileId: string,
-  mediaId: string
+  mediaId: string,
+  accessToken: string
 ) => {
 
   const { data, error } =
@@ -32,6 +34,29 @@ export const addFavorite = async (
 
   console.log("ADD FAVORITE DATA:", data);
   console.log("ADD FAVORITE ERROR:", error);
+
+  if(!error){
+    const { data: media } =
+    await supabase
+      .from("media")
+      .select("title,description")
+      .eq("id", mediaId)
+      .single();
+
+    await saveMemory(
+      profileId,
+      "favorite",
+      `
+      User marked this as favorite:
+
+      ${media?.title}
+
+      ${media?.description}
+      `,
+      accessToken,
+      mediaId
+    );
+  }
 
   return { data, error };
 };

@@ -1,10 +1,12 @@
 import { supabase }
 from "../../lib/supabaseClient";
+import { saveMemory } from "./memoryService";
 
 export const addRecentlyViewed =
 async (
   profileId: string,
-  mediaId: string
+  mediaId: string,
+  accessToken:string
 ) => {
 
   const { error } =
@@ -22,11 +24,47 @@ async (
             "profile_id,media_id",
         }
       );
-    
 
   if(error){
     console.log(error);
     return false;
+  }
+
+  if(!error){
+    const { data: media } =
+
+    await supabase
+
+      .from("media")
+
+      .select("title,description")
+
+      .eq("id", mediaId)
+
+      .single();
+
+    if(media){
+
+      await saveMemory(
+
+        profileId,
+
+        "recently_viewed",
+
+        `
+
+        User recently watched:
+
+        ${media.title}
+
+        ${media.description}
+
+        `,
+        accessToken,
+        mediaId
+      );
+
+    }
   }
 
   return true;

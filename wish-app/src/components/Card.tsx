@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { getCurrentProfile } from "@/lib/getCurrentProfile";
 import { addFavorite, removeFavorite, isFavorite } from "@/services/favoriteService";
 import { Sparkles } from "lucide-react";
+import { supabase } from "../../lib/supabaseClient";
 
 
 interface CardProps {
@@ -98,6 +99,8 @@ export default function Card({ content, index = 0 }: CardProps) {
               e.stopPropagation();
 
               const profile = getCurrentProfile();
+              const{data:{session}}=await supabase.auth.getSession();
+              const accessToken=session?.access_token;
               if (!profile) return;
 
               if (liked) {
@@ -107,7 +110,7 @@ export default function Card({ content, index = 0 }: CardProps) {
                   detail: { mediaId: content.id, isFavorite: false }
                 }));
               } else {
-                await addFavorite(profile.id, content.id);
+                await addFavorite(profile.id, content.id, accessToken!);
                 setLiked(true);
                 window.dispatchEvent(new CustomEvent("favoriteToggle", {
                   detail: { mediaId: content.id, isFavorite: true }

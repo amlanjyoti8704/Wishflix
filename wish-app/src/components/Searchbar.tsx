@@ -133,7 +133,7 @@ export default function Searchbar({ mediaItems, onSearchResults }: SearchbarProp
           //     profile.id
           //   );
 
-          const response =
+          const semanticResponse =
             await fetch(
               "/api/semantic-search",
               {
@@ -151,16 +151,61 @@ export default function Searchbar({ mediaItems, onSearchResults }: SearchbarProp
               }
             );
 
-          const data =
-            await response.json();
+          const semanticData =
+            await semanticResponse.json();
+
+          const memoryResponse =
+            await fetch(
+              "/api/memory-search",
+              {
+                method:"POST",
+                headers:{
+                  "Content-Type":
+                    "application/json"
+                },
+                body:JSON.stringify({
+                  profileId: profile.id,
+                  query: debouncedQuery
+                })
+              }
+            );
+
+          const memoryData =
+            await memoryResponse.json();
 
           console.log(
-            "AI SEARCH SOURCE:",
-            data.source
+            "SEMANTIC SEARCH SOURCE:",
+            semanticData.results
+          );
+          console.log(
+            "MEMORY SEARCH SOURCE:",
+            memoryData.results
           );
 
-          filtered =
-            data.results;
+          const semanticResults =
+            semanticData.results || [];
+
+          const memoryResults =
+            memoryData.results || [];
+
+          const mergedMap =new Map();
+
+          [
+            ...memoryResults,
+            ...semanticResults
+          ].forEach((item:any) => {
+
+            if(
+              !mergedMap.has(item.id)
+            ){
+              mergedMap.set(
+                item.id,
+                item
+              );
+            }
+          });
+
+          filtered = Array.from(mergedMap.values());
 
         } else {
 
@@ -193,7 +238,11 @@ export default function Searchbar({ mediaItems, onSearchResults }: SearchbarProp
           filtered =
             data.results || [];
         }
-
+console.log(
+  filtered.map(
+    (item:any) => item.id
+  )
+);
         setResultCount(filtered.length);
 
         onSearchResults?.(filtered, debouncedQuery);

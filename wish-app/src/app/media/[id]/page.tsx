@@ -13,6 +13,7 @@ import { addRecentlyViewed } from "@/services/recentlyViewedService";
 import { saveProgress, getProgress, removeContinueWatching } from "@/services/continueWatchingService";
 import { clearRecentlyViewedCache } from "@/services/recentlyViewedCacheActions";
 import { clearContinueWatchingCache } from "@/services/continueWatchingCacheActions";
+import { supabase } from "../../../../lib/supabaseClient";
 
 export default function MediaPage() {
   const router = useRouter();
@@ -67,18 +68,23 @@ export default function MediaPage() {
 
         const profile =
           getCurrentProfile();
+        
+        const {data:{session}} = await supabase.auth.getSession();
+        const accessToken=session?.access_token;
 
         if (
           !profile ||
           !videoRef.current ||
-          !media
+          !media ||
+          !accessToken
         ) return;
 
         await saveProgress(
           profile.id,
           media.id,
           videoRef.current.currentTime,
-          videoRef.current.duration
+          videoRef.current.duration,
+          accessToken!
         );
 
         await clearContinueWatchingCache(
@@ -222,15 +228,19 @@ export default function MediaPage() {
 
         const profile =
           getCurrentProfile();
+        const {data:{session}} = await supabase.auth.getSession();
+        const accessToken=session?.access_token;
 
         if(
           !profile ||
-          !media
+          !media ||
+          !accessToken
         ) return;
 
         const updated = await addRecentlyViewed(
           profile.id,
-          media.id
+          media.id,
+          accessToken!
         );
 
         if(updated){
@@ -322,10 +332,14 @@ export default function MediaPage() {
         
         const profile =
         getCurrentProfile();
+
+        const {data:{session}} = await supabase.auth.getSession();
+        const accessToken=session?.access_token;
         
         if(
           !profile ||
-          !videoRef.current
+          !videoRef.current ||
+          !accessToken
         ) return;
         
         const progress = videoRef.current.currentTime;
@@ -353,7 +367,8 @@ export default function MediaPage() {
             profile.id,
             media.id,
             videoRef.current.currentTime,
-            videoRef.current.duration
+            videoRef.current.duration,
+            accessToken!
           );
           await clearContinueWatchingCache(
             profile.id
@@ -392,11 +407,15 @@ export default function MediaPage() {
         return;
       }
       (async()=>{
+        const {data:{session}} = await supabase.auth.getSession();
+        const accessToken=session?.access_token;
+        
         await saveProgress(
           profile.id,
           media.id,
           video.currentTime,
-          video.duration
+          video.duration,
+          accessToken!
         );
 
         await clearContinueWatchingCache( profile.id );
@@ -552,6 +571,8 @@ export default function MediaPage() {
           <button
             onClick={async () => {
                 const profile = getCurrentProfile();
+                const {data:{session}}=await supabase.auth.getSession();
+                const accessToken=session?.access_token;
                 console.log("MEDIA ID", media?.id);
                 console.log("PROFILE ID", profile?.id);
 
@@ -564,7 +585,7 @@ export default function MediaPage() {
                     detail: { mediaId: media.id, isFavorite: false } 
                   }));
                 } else {
-                  const { error } = await addFavorite(profile.id, media.id);
+                  const { error } = await addFavorite(profile.id, media.id, accessToken!);
                   if (!error) {
                     setFavorite(true);
                     window.dispatchEvent(new CustomEvent("favoriteToggle", { 

@@ -1,12 +1,14 @@
 import { supabase }
 from "../../lib/supabaseClient";
+import { saveMemory } from "./memoryService";
 
 export const saveProgress =
 async (
   profileId:string,
   mediaId:string,
   progress:number,
-  duration:number
+  duration:number,
+  accessToken:string
 ) => {
 
   const { error } =
@@ -38,6 +40,34 @@ async (
 
   if(error){
     console.log(error);
+  }
+  const { data: media } =
+    await supabase
+      .from("media")
+      .select("title,description")
+      .eq("id", mediaId)
+      .single();
+
+  if(media){
+
+    await saveMemory(
+      profileId,
+      "continue_watching",
+      `
+      User is currently watching:
+
+      ${media.title}
+
+      ${media.description}
+
+      Progress:
+      ${Math.round(
+        progress / duration * 100
+      )}% completed
+      `,
+      accessToken,
+      mediaId
+    );
   }
 };
 
