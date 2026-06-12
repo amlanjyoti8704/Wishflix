@@ -11,6 +11,7 @@ import {useRef} from "react";
 import { v4 as uuidv4 } from "uuid";
 import { getAllMedia, deleteMedia, updateMedia } from "@/services/mediaService";
 import {ImSpinner2} from "react-icons/im";
+import { getCurrentProfile } from "@/lib/getCurrentProfile";
 
 export default function AdminPage() {
 
@@ -317,33 +318,76 @@ export default function AdminPage() {
 
       setUploading(false);
 
-      await fetch(
-        "/api/embed-media",
-        {
-          method:"POST",
-          headers:{
-            "Content-Type":
-              "application/json"
-          },
-          body: JSON.stringify({
-            mediaId: mediaRow.id
-          })
-        }
-      );
+      // await fetch(
+      //   "/api/embed-media",
+      //   {
+      //     method:"POST",
+      //     headers:{
+      //       "Content-Type":
+      //         "application/json"
+      //     },
+      //     body: JSON.stringify({
+      //       mediaId: mediaRow.id
+      //     })
+      //   }
+      // );
 
-      await fetch(
-        "/api/search/clear",
-        {
-          method: "POST"
-        }
-      );
+      // await fetch(
+      //   "/api/search/clear",
+      //   {
+      //     method: "POST"
+      //   }
+      // );
 
-      await fetch(
-        "/api/semantic-search/clear",
-        {
-          method: "POST"
-        }
-      );
+      // await fetch(
+      //   "/api/semantic-search/clear",
+      //   {
+      //     method: "POST"
+      //   }
+      // );
+
+      await Promise.all([
+        fetch(
+          "/api/embed-media",
+          {
+            method:"POST",
+            headers:{
+              "Content-Type":
+                "application/json"
+            },
+            body: JSON.stringify({
+              mediaId:
+                mediaRow.id
+            })
+          }
+        ),
+        ...selectedProfiles.map(p => fetch(
+          "/api/search/clear",
+          {
+            method:"POST",
+            headers:{
+              "Content-Type":
+                "application/json"
+            },
+            body: JSON.stringify({
+              profileId: p
+            })
+          }
+        )),
+        ...selectedProfiles.map(p => fetch(
+          "/api/semantic-search/clear",
+          {
+            method:"POST",
+            headers:{
+              "Content-Type":
+                "application/json"
+            },
+            body: JSON.stringify({
+              profileId: p
+            })
+          }
+        ))
+      ]);
 
       alert(
         "Content uploaded successfully"
@@ -388,18 +432,48 @@ export default function AdminPage() {
       const error = await deleteMedia(mediaId);
 
       if (!error) {
-        await fetch(
-          "/api/search/clear",
-          {
-            method: "POST"
-          }
-        );
-        await fetch(
-          "/api/semantic-search/clear",
-          {
-            method: "POST"
-          }
-        );
+        // await fetch(
+        //   "/api/search/clear",
+        //   {
+        //     method: "POST"
+        //   }
+        // );
+        // await fetch(
+        //   "/api/semantic-search/clear",
+        //   {
+        //     method: "POST"
+        //   }
+        // );
+
+        await Promise.all([
+          ...selectedProfiles.map(p => fetch(
+            "/api/search/clear",
+            {
+              method:"POST",
+              headers:{
+                "Content-Type":
+                  "application/json"
+              },
+              body: JSON.stringify({
+                profileId: p
+              })
+            }
+          )),
+          ...selectedProfiles.map(p => fetch(
+            "/api/semantic-search/clear",
+            {
+              method:"POST",
+              headers:{
+                "Content-Type":
+                  "application/json"
+              },
+              body: JSON.stringify({
+                profileId: p
+              })
+            }
+          ))
+        ]);
+
         setMedia(prev => prev.filter(m => m.id !== mediaId));
         alert("Deleted");
         setDeletingId(null);
@@ -473,34 +547,94 @@ export default function AdminPage() {
         return;
       }
 
-      await fetch(
-        "/api/embed-media",
-        {
-          method:"POST",
-          headers:{
-            "Content-Type":
-              "application/json"
-          },
-          body: JSON.stringify({
-            mediaId:
-              selectedMedia.id
-          })
-        }
-      );
+      // await fetch(
+      //   "/api/embed-media",
+      //   {
+      //     method:"POST",
+      //     headers:{
+      //       "Content-Type":
+      //         "application/json"
+      //     },
+      //     body: JSON.stringify({
+      //       mediaId:
+      //         selectedMedia.id
+      //     })
+      //   }
+      // );
+      // for (const profileId of selectedProfiles){
+      //   await fetch(
+      //     "/api/search/clear",
+      //     {
+      //       method:"POST",
+      //       headers:{
+      //         "Content-Type":
+      //           "application/json"
+      //       },
+      //       body: JSON.stringify({
+      //         profileId
+      //       })
+      //     }
+      //   );
 
-      await fetch(
-        "/api/search/clear",
-        {
-          method:"POST"
-        }
-      );
+      //   await fetch(
+      //     "/api/semantic-search/clear",
+      //     {
+      //       method:"POST",
+      //       headers:{
+      //         "Content-Type":
+      //           "application/json"
+      //       },
+      //       body: JSON.stringify({
+      //         profileId
+      //       })
+      //     }
+      //   );
+      // }
 
-      await fetch(
-        "/api/semantic-search/clear",
-        {
-          method:"POST"
-        }
-      );
+      // Parallel API calls (used Promise.all() for that in order to increase to speed)
+
+      await Promise.all([
+        fetch(
+          "/api/embed-media",
+          {
+            method:"POST",
+            headers:{
+              "Content-Type":
+                "application/json"
+            },
+            body: JSON.stringify({
+              mediaId:
+                selectedMedia.id
+            })
+          }
+        ),
+        ...selectedProfiles.map(p => fetch(
+          "/api/search/clear",
+          {
+            method:"POST",
+            headers:{
+              "Content-Type":
+                "application/json"
+            },
+            body: JSON.stringify({
+              profileId: p
+            })
+          }
+        )),
+        ...selectedProfiles.map(p => fetch(
+          "/api/semantic-search/clear",
+          {
+            method:"POST",
+            headers:{
+              "Content-Type":
+                "application/json"
+            },
+            body: JSON.stringify({
+              profileId: p
+            })
+          }
+        ))
+      ]);
 
       setMedia(prev =>
         prev.map(m =>

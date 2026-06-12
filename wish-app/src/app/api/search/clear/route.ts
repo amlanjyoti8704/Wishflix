@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
-import { clearAllSearchCache } from "../../../../services/searchCacheActions";
+import { clearSearchCache } from "../../../../services/searchCacheActions";
 
-export async function POST() {
+export async function POST(request: Request) {
 
-  await clearAllSearchCache();
+  const { profileId } = await request.json();
+
+  await clearSearchCache(profileId);
 
   return NextResponse.json({
-    success:true
+    success: true
   });
 
 }

@@ -3,14 +3,11 @@
 import { redis } from "@/lib/redis";
 
 export async function clearSearchCache(
-  profileId:string,
-  query: string
+  profileId:string
 ) {
-  const normalizedQuery =
-    query.trim().toLowerCase();
 
   const cacheKey =
-    `search:${profileId}:${normalizedQuery}`;
+    `search:${profileId}:*`;
 
   console.log(
     "DELETING SEARCH CACHE:",

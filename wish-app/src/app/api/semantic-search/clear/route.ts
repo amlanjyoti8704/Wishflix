@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
-import { clearAllSemanticCache } from "@/services/semanticCacheService";
+import { clearSemanticCache } from "@/services/semanticCacheService";
 
-export async function POST() {
+export async function POST(request:Request) {
 
-  await clearAllSemanticCache();
+  const { profileId } =
+    await request.json();
+
+  await clearSemanticCache(
+    profileId
+  );
 
   return NextResponse.json({
     success:true

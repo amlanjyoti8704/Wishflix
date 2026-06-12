@@ -22,14 +22,14 @@ export async function POST(
     const { mediaId } =
       await request.json();
 
-    const { data: media } =
+    const { data: media, error } =
       await supabase
         .from("media")
         .select("*")
         .eq("id", mediaId)
         .single();
 
-    if(!media){
+    if(error || !media){
 
       return NextResponse.json(
         { error:"Media not found" },
@@ -49,7 +49,7 @@ export async function POST(
         ?.map(
           c => c.category
         )
-        .join(" ");
+        .join(", ") || "";
 
     const text = `
       Title:
