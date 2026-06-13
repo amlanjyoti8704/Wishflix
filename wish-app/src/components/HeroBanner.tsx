@@ -10,7 +10,7 @@ interface HeroBannerProps {
 
 export default function HeroBanner({ content }: HeroBannerProps) {
   const router=useRouter();
-  console.log(content.thumbnail_url);
+  // console.log(content.thumbnail_url);
   return (
     <section
       className="relative w-full h-[70vh] sm:h-[80vh] lg:h-[85vh] overflow-hidden"

@@ -54,7 +54,7 @@ export default function Card({ content, index = 0 }: CardProps) {
     )
     : 0;
 
-  console.log(content.thumbnail_url);
+  // console.log(content.thumbnail_url);
   return (
     <div
       className="group relative flex-shrink-0 w-[160px] sm:w-[200px] md:w-[240px] lg:w-[280px] cursor-pointer animate-fade-in"

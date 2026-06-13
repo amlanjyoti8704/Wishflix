@@ -348,6 +348,8 @@ export default function AdminPage() {
       //   }
       // );
 
+      const profileId=getCurrentProfile().id;
+
       await Promise.all([
         fetch(
           "/api/embed-media",
@@ -390,11 +392,10 @@ export default function AdminPage() {
           }
         )),
 
-        // ...selectedProfiles.map(p => {
-        //   clearRecommendationCache(p);
-        //   clearMemoryCache(p);
-        //   return;
-        // })
+        
+          clearRecommendationCache(profileId),
+          clearMemoryCache(profileId)
+        
       ]);
 
       alert(
@@ -453,6 +454,7 @@ export default function AdminPage() {
         //   }
         // );
 
+        const profileId=getCurrentProfile().id;
         await Promise.all([
           ...selectedProfiles.map(p => fetch(
             "/api/search/clear",
@@ -480,11 +482,10 @@ export default function AdminPage() {
               })
             }
           )),
-          // ...selectedProfiles.map(p => {
-          //   clearRecommendationCache(p);
-          //   clearMemoryCache(p);
-          //   return;
-          // })
+          
+            clearRecommendationCache(profileId),
+            clearMemoryCache(profileId)
+           
         ]);
 
         setMedia(prev => prev.filter(m => m.id !== mediaId));
@@ -603,7 +604,7 @@ export default function AdminPage() {
       //     }
       //   );
       // }
-
+      const profileId=getCurrentProfile().id;
       // Parallel API calls (used Promise.all() for that in order to increase to speed)
 
       await Promise.all([
@@ -647,11 +648,10 @@ export default function AdminPage() {
             })
           }
         )),
-        // ...selectedProfiles.map(p => {
-        //   clearRecommendationCache(p);
-        //   clearMemoryCache(p);
-        //   return;
-        // })
+        
+        clearRecommendationCache(profileId),
+        clearMemoryCache(profileId)
+        
       ]);
 
       setMedia(prev =>
@@ -669,8 +669,8 @@ export default function AdminPage() {
       setSaving(false);
     };
 
-  console.log("Media", media);
-  console.log("storedCategories", storedCategories);
+  // console.log("Media", media);
+  // console.log("storedCategories", storedCategories);
   return (
     <div className="min-h-screen bg-bg-primary">
       <Navbar />

@@ -38,7 +38,7 @@ export default function ProfilesPage() {
 
         .eq("user_id", user.id);
 
-      console.log(existingProfile);
+      // console.log(existingProfile);
 
       if(!existingProfile || existingProfile.length===0){
         const {error: insertError}=await supabase
@@ -105,7 +105,7 @@ export default function ProfilesPage() {
             .getPublicUrl(fileName);
 
         avatarUrl = data.publicUrl;
-        console.log("AVATAR URL:", avatarUrl);
+        // console.log("AVATAR URL:", avatarUrl);
       }
     }
 
@@ -121,7 +121,7 @@ export default function ProfilesPage() {
         .select()
         .single();
 
-    console.log(createdProfile);
+    // console.log(createdProfile);
     console.log(error);
 
     if (createdProfile) {
@@ -144,7 +144,7 @@ export default function ProfilesPage() {
 
     if (!selectedProfile) return;
 
-    console.log(selectedProfile);
+    // console.log(selectedProfile);
 
     let avatarUrl =
       selectedProfile.avatar;
@@ -188,7 +188,7 @@ export default function ProfilesPage() {
         .select()
         .single();
 
-    console.log(data);
+    // console.log(data);
     console.log(error);
 
     if (data) {

@@ -56,7 +56,7 @@ export default function Navbar({ mediaItems, onSearchResults }: any) {
     { href: "/admin", label: "Admin" },
   ];
 
-  console.log("PROFILE STATE", profile);
+  // console.log("PROFILE STATE", profile);
   return (
     <nav
       style={{paddingLeft:'16px', paddingRight:'16px'}}

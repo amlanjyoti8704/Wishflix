@@ -77,10 +77,10 @@ export default function BrowsePage() {
         const data =
           await response.json();
 
-        console.log(
-          "RECOMMEND SOURCE:",
-          data.source
-        );
+        // console.log(
+        //   "RECOMMEND SOURCE:",
+        //   data.source
+        // );
 
         setRecommendations(
           data.results || []
@@ -131,8 +131,8 @@ export default function BrowsePage() {
       async () => {
 
         const profileId = getCurrentProfile();
-        console.log("CURRENT PROFILE", profileId);
-        console.log("PROFILE ID", profileId?.id);
+        // console.log("CURRENT PROFILE", profileId);
+        // console.log("PROFILE ID", profileId?.id);
 
         if (!profileId) return;
 
@@ -298,16 +298,16 @@ export default function BrowsePage() {
     sortBy
   ]);
 
-  console.log(
-    "Total:",
-    mediaItems.length,
-    "Filtered:",
-    filteredMedia.length,
-    selectedType,
-    selectedCategory
-  );
+  // console.log(
+  //   "Total:",
+  //   mediaItems.length,
+  //   "Filtered:",
+  //   filteredMedia.length,
+  //   selectedType,
+  //   selectedCategory
+  // );
 
-  console.log(mediaItems[0]);
+  // console.log(mediaItems[0]);
 
   const recentMedia = recentlyViewed.map((item: any) => item.media);
 

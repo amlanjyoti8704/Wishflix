@@ -173,14 +173,14 @@ export default function Searchbar({ mediaItems, onSearchResults }: SearchbarProp
           const memoryData =
             await memoryResponse.json();
 
-          console.log(
-            "SEMANTIC SEARCH SOURCE:",
-            semanticData.results
-          );
-          console.log(
-            "MEMORY SEARCH SOURCE:",
-            memoryData.results
-          );
+          // console.log(
+          //   "SEMANTIC SEARCH SOURCE:",
+          //   semanticData.results
+          // );
+          // console.log(
+          //   "MEMORY SEARCH SOURCE:",
+          //   memoryData.results
+          // );
 
           const semanticResults =
             semanticData.results || [];
@@ -230,19 +230,20 @@ export default function Searchbar({ mediaItems, onSearchResults }: SearchbarProp
           const data =
             await response.json();
 
-          console.log(
-            "SEARCH SOURCE:",
-            data.source
-          );
+          // console.log(
+          //   "SEARCH SOURCE:",
+          //   data.source
+          // );
 
           filtered =
             data.results || [];
         }
-console.log(
-  filtered.map(
-    (item:any) => item.id
-  )
-);
+        // console.log(
+        //   filtered.map(
+        //     (item:any) => item.id
+        //   )
+        // );
+        
         setResultCount(filtered.length);
 
         onSearchResults?.(filtered, debouncedQuery);

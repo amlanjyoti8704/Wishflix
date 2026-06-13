@@ -573,8 +573,8 @@ export default function MediaPage() {
                 const profile = getCurrentProfile();
                 const {data:{session}}=await supabase.auth.getSession();
                 const accessToken=session?.access_token;
-                console.log("MEDIA ID", media?.id);
-                console.log("PROFILE ID", profile?.id);
+                // console.log("MEDIA ID", media?.id);
+                // console.log("PROFILE ID", profile?.id);
 
                 if (!profile) return;
 
