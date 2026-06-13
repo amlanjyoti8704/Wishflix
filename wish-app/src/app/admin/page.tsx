@@ -9,13 +9,21 @@ import { supabase } from "../../../lib/supabaseClient";
 import { useEffect } from "react";
 import {useRef} from "react";
 import { v4 as uuidv4 } from "uuid";
-import { getAllMedia, deleteMedia, updateMedia } from "@/services/mediaService";
+import { getMediaByUser, getAllMedia, deleteMedia, updateMedia } from "@/services/mediaService";
 import {ImSpinner2} from "react-icons/im";
 import { getCurrentProfile } from "@/lib/getCurrentProfile";
 import { clearRecommendationCache } from "@/services/recommendationCacheService";
 import { clearMemoryCache } from "@/services/memoryCacheService";
+import { clearRecentlyViewedCache } from "@/services/recentlyViewedCacheActions";
+import { clearContinueWatchingCache } from "@/services/continueWatchingCacheActions";
+import { useRouter } from "next/navigation";
+import { isAdmin } from "@/lib/isAdmin";
+// import { isAdminService } from "@/services/isAdminService";
 
 export default function AdminPage() {
+
+  const router = useRouter();
+  const [authorized, setAuthorized]=useState(false);
 
   const mediaInputRef =
     useRef<HTMLInputElement>(null);
@@ -30,6 +38,8 @@ export default function AdminPage() {
   const [formTitle, setFormTitle] = useState("");
   const [formDesc, setFormDesc] = useState("");
   // const [formCategory, setFormCategory] = useState("");
+
+  const [manageUserId, setManageUserId] = useState("");
 
   const [mediaFile, setMediaFile] =
   useState<File | null>(null);
@@ -83,30 +93,115 @@ export default function AdminPage() {
   const [pageLoading, setPageLoading] =
     useState(true);
 
+  const [users, setUsers] = useState<any[]>([]);
+
+  const [selectedUserId, setSelectedUserId] = useState("");
+
   const currentTab = activeTab;
 
+  // checking authorisation for admin access.->
+
+  useEffect(() => {
+    const checkAdminAccess =
+      async () => {
+
+        const allowed =
+          await isAdmin();
+
+        if (!allowed) {
+          router.push("/browse");
+          return;
+        }
+
+        setAuthorized(true);
+      };
+
+    checkAdminAccess();
+  }, [router]);
+
+  const loadProfilesForUser = async (userId: string) => {
+
+    const { data, error } =
+      await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", userId);
+    console.log("User profiles : ",data);
+
+    if (error) {
+      console.log(error);
+      return;
+    }
+
+    setProfiles(data || []);
+  };
+
+const handleManageUserChange = async (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+
+    const userId = e.target.value;
+
+    setManageUserId(userId);
+
+    if (!userId) {
+      setMedia([]);
+      return;
+    }
+
+    setPageLoading(true);
+
+    const data =
+      await getMediaByUser(userId);
+
+      console.log("Media Data", data);
+
+    setMedia(data);
+
+    setPageLoading(false);
+  };
+
+  // Loading users, media and caegories for update and uploads
   useEffect(() => {
 
-    const loadProfiles = async () => {
+    const loadUsers = async () => {
 
-      const { data: sessionData } =
-        await supabase.auth.getSession();
-
-      const user =
-        sessionData.session?.user;
-
-      if (!user) return;
-
-      const { data } =
+      const { data, error } =
         await supabase
-          .from("profiles")
+          .from("app_users")
           .select("*")
-          .eq("user_id", user.id);
+          .order("email");
+      
+      console.log("Data : ", data);
 
-      if (data) {
-        setProfiles(data);
+      if (error) {
+        console.log(error);
+        return;
       }
+
+      setUsers(data || []);
     };
+
+    // const loadProfiles = async () => {
+
+    //   const { data: sessionData } =
+    //     await supabase.auth.getSession();
+
+    //   const user =
+    //     sessionData.session?.user;
+
+    //   if (!user) return;
+
+    //   const { data } =
+    //     await supabase
+    //       .from("profiles")
+    //       .select("*")
+    //       .eq("user_id", user.id);
+
+    //   if (data) {
+    //     setProfiles(data);
+    //   }
+    // };
 
     const loadMedia = async () => {
       setPageLoading(true)
@@ -130,10 +225,10 @@ export default function AdminPage() {
       setStoredCategories(categories);
     };
 
-    loadProfiles();
-    loadMedia();
+    // loadProfiles();
+    loadUsers();
+    // loadMedia();
     loadCategories();
-
   }, []);
 
   const handleUpload = async (
@@ -348,54 +443,55 @@ export default function AdminPage() {
       //   }
       // );
 
-      const profileId=getCurrentProfile().id;
+      // const allowed = await isAdminService();
+
+      // if (!allowed) {
+      //   alert("Unauthorized")
+      //   return;
+      // }
 
       await Promise.all([
-        fetch(
-          "/api/embed-media",
-          {
-            method:"POST",
-            headers:{
-              "Content-Type":
-                "application/json"
-            },
-            body: JSON.stringify({
-              mediaId:
-                mediaRow.id
-            })
-          }
-        ),
-        ...selectedProfiles.map(p => fetch(
-          "/api/search/clear",
-          {
-            method:"POST",
-            headers:{
-              "Content-Type":
-                "application/json"
-            },
-            body: JSON.stringify({
-              profileId: p
-            })
-          }
-        )),
-        ...selectedProfiles.map(p => fetch(
-          "/api/semantic-search/clear",
-          {
-            method:"POST",
-            headers:{
-              "Content-Type":
-                "application/json"
-            },
-            body: JSON.stringify({
-              profileId: p
-            })
-          }
-        )),
+        fetch("/api/embed-media", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            mediaId: mediaRow.id,
+          }),
+        }),
 
-        
-          clearRecommendationCache(profileId),
-          clearMemoryCache(profileId)
-        
+        ...selectedProfiles.map((p) =>
+          fetch("/api/search/clear", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              profileId: p,
+            }),
+          })
+        ),
+
+        ...selectedProfiles.map((p) =>
+          fetch("/api/semantic-search/clear", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              profileId: p,
+            }),
+          })
+        ),
+
+        ...selectedProfiles.map((p) =>
+          clearRecommendationCache(p)
+        ),
+
+        ...selectedProfiles.map((p) =>
+          clearMemoryCache(p)
+        ),
       ]);
 
       alert(
@@ -407,6 +503,8 @@ export default function AdminPage() {
       setMediaType("");
       setMediaFile(null);
       setThumbnailFile(null);
+      setSelectedUserId("");
+      setProfiles([]);
       setSelectedProfiles([]);
       setSelectedCategories([]);
 
@@ -438,55 +536,64 @@ export default function AdminPage() {
 
       setDeletingId(mediaId);
 
+      // Query affected profiles BEFORE deleting, since deleteMedia()
+      // removes media_profiles rows first
+      const { data: affectedProfiles } =
+        await supabase
+          .from("media_profiles")
+          .select("profile_id")
+          .eq("media_id", mediaId);
+
+      const profileIds =
+        affectedProfiles?.map(
+          (p) => p.profile_id
+        ) || [];
+
       const error = await deleteMedia(mediaId);
 
       if (!error) {
-        // await fetch(
-        //   "/api/search/clear",
-        //   {
-        //     method: "POST"
-        //   }
-        // );
-        // await fetch(
-        //   "/api/semantic-search/clear",
-        //   {
-        //     method: "POST"
-        //   }
-        // );
 
-        const profileId=getCurrentProfile().id;
-        await Promise.all([
-          ...selectedProfiles.map(p => fetch(
-            "/api/search/clear",
-            {
-              method:"POST",
-              headers:{
-                "Content-Type":
-                  "application/json"
-              },
-              body: JSON.stringify({
-                profileId: p
-              })
-            }
-          )),
-          ...selectedProfiles.map(p => fetch(
-            "/api/semantic-search/clear",
-            {
-              method:"POST",
-              headers:{
-                "Content-Type":
-                  "application/json"
-              },
-              body: JSON.stringify({
-                profileId: p
-              })
-            }
-          )),
-          
-            clearRecommendationCache(profileId),
-            clearMemoryCache(profileId)
-           
-        ]);
+      await Promise.all([
+        ...profileIds.map((p) =>
+          fetch("/api/search/clear", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              profileId: p,
+            }),
+          })
+        ),
+
+        ...profileIds.map((p) =>
+          fetch("/api/semantic-search/clear", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              profileId: p,
+            }),
+          })
+        ),
+
+        ...profileIds.map((p) =>
+          clearRecommendationCache(p)
+        ),
+
+        ...profileIds.map((p) =>
+          clearMemoryCache(p)
+        ),
+
+        ...profileIds.map((p) =>
+          clearRecentlyViewedCache(p)
+        ),
+
+        ...profileIds.map((p) =>
+          clearContinueWatchingCache(p)
+        ),
+      ]);
 
         setMedia(prev => prev.filter(m => m.id !== mediaId));
         alert("Deleted");
@@ -518,6 +625,19 @@ export default function AdminPage() {
               editDescription,
           }
         );
+
+      // Fetch OLD profile assignments BEFORE deleting them,
+      // so we can clear caches for profiles that had media removed
+      const { data: oldProfileLinks } =
+        await supabase
+          .from("media_profiles")
+          .select("profile_id")
+          .eq("media_id", selectedMedia.id);
+
+      const oldProfileIds =
+        oldProfileLinks?.map(
+          (p) => p.profile_id
+        ) || [];
 
       await supabase
         .from("media_profiles")
@@ -561,97 +681,62 @@ export default function AdminPage() {
         return;
       }
 
-      // await fetch(
-      //   "/api/embed-media",
-      //   {
-      //     method:"POST",
-      //     headers:{
-      //       "Content-Type":
-      //         "application/json"
-      //     },
-      //     body: JSON.stringify({
-      //       mediaId:
-      //         selectedMedia.id
-      //     })
-      //   }
-      // );
-      // for (const profileId of selectedProfiles){
-      //   await fetch(
-      //     "/api/search/clear",
-      //     {
-      //       method:"POST",
-      //       headers:{
-      //         "Content-Type":
-      //           "application/json"
-      //       },
-      //       body: JSON.stringify({
-      //         profileId
-      //       })
-      //     }
-      //   );
-
-      //   await fetch(
-      //     "/api/semantic-search/clear",
-      //     {
-      //       method:"POST",
-      //       headers:{
-      //         "Content-Type":
-      //           "application/json"
-      //       },
-      //       body: JSON.stringify({
-      //         profileId
-      //       })
-      //     }
-      //   );
-      // }
-      const profileId=getCurrentProfile().id;
-      // Parallel API calls (used Promise.all() for that in order to increase to speed)
+      // Combine old and new profiles so caches are cleared for BOTH
+      // profiles that lost media AND profiles that gained media
+      const allAffectedProfiles = Array.from(
+        new Set([...oldProfileIds, ...selectedProfiles])
+      );
 
       await Promise.all([
-        fetch(
-          "/api/embed-media",
-          {
-            method:"POST",
-            headers:{
-              "Content-Type":
-                "application/json"
+        fetch("/api/embed-media", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            mediaId: selectedMedia.id,
+          }),
+        }),
+
+        ...allAffectedProfiles.map((p) =>
+          fetch("/api/search/clear", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              mediaId:
-                selectedMedia.id
-            })
-          }
+              profileId: p,
+            }),
+          })
         ),
-        ...selectedProfiles.map(p => fetch(
-          "/api/search/clear",
-          {
-            method:"POST",
-            headers:{
-              "Content-Type":
-                "application/json"
+
+        ...allAffectedProfiles.map((p) =>
+          fetch("/api/semantic-search/clear", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              profileId: p
-            })
-          }
-        )),
-        ...selectedProfiles.map(p => fetch(
-          "/api/semantic-search/clear",
-          {
-            method:"POST",
-            headers:{
-              "Content-Type":
-                "application/json"
-            },
-            body: JSON.stringify({
-              profileId: p
-            })
-          }
-        )),
-        
-        clearRecommendationCache(profileId),
-        clearMemoryCache(profileId)
-        
+              profileId: p,
+            }),
+          })
+        ),
+
+        ...allAffectedProfiles.map((p) =>
+          clearRecommendationCache(p)
+        ),
+
+        ...allAffectedProfiles.map((p) =>
+          clearMemoryCache(p)
+        ),
+
+        ...allAffectedProfiles.map((p) =>
+          clearRecentlyViewedCache(p)
+        ),
+
+        ...allAffectedProfiles.map((p) =>
+          clearContinueWatchingCache(p)
+        ),
       ]);
 
       setMedia(prev =>
@@ -669,8 +754,17 @@ export default function AdminPage() {
       setSaving(false);
     };
 
-  // console.log("Media", media);
-  // console.log("storedCategories", storedCategories);
+
+  //  preventing the unauthorized user to access the admin page.
+  if (!authorized) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white">
+        <div><ImSpinner2 className="animate-spin text-4xl text-white" /></div>
+        <div>Checking permissions...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-bg-primary">
       <Navbar />
@@ -714,13 +808,34 @@ export default function AdminPage() {
             {/* Dashboard Tab */}
             {currentTab === "dashboard" && (
               <div className="space-y-8">
-                <div>
-                  <h1 className="text-2xl sm:text-3xl font-bold mb-1">
-                    Dashboard
-                  </h1>
-                  <p className="text-text-muted text-sm">
-                    Overview of your content library
-                  </p>
+                <div className="flex justify-between">
+                  <div className="">
+                    <h1 className="text-2xl sm:text-3xl font-bold mb-1">
+                      Dashboard
+                    </h1>
+                    <p className="text-text-muted text-sm">
+                      Overview of your content library
+                    </p>
+                  </div>
+                  <div>
+                    <select
+                      value={manageUserId}
+                      onChange={handleManageUserChange} 
+                    >
+                      <option value="">
+                        Select User
+                      </option>
+
+                      {users.map(user => (
+                        <option
+                          key={user.id}
+                          value={user.id}
+                        >
+                          {user.email}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 {/* Stats Grid */}
@@ -902,6 +1017,41 @@ export default function AdminPage() {
                       </div>
                     </div>
 
+                    {/* Users Section */}
+                    <div>
+                      <label className="block text-lg font-medium text-text-secondary mb-2">
+                        Select User
+                      </label>
+
+                      <div className="w-full h-10 flex items-center px-4 py-3 bg-bg-tertiary border border-border rounded-xl">
+                        <select
+                          value={selectedUserId}
+                          className="w-full"
+                          onChange={async (e) => {
+
+                            const userId = e.target.value;
+                            setSelectedUserId(userId);
+                            setSelectedProfiles([]);
+                            await loadProfilesForUser(userId);
+
+                          }}
+                        >
+                          <option value="">
+                            Select User
+                          </option>
+
+                          {users.map((user) => (
+                            <option
+                              key={user.id}
+                              value={user.id}
+                            >
+                              {user.email}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
                     {/* Profiles */}
                     <div className="max-w-2xl space-y-3">
                       <div className="flex items-center justify-between">
@@ -938,7 +1088,11 @@ export default function AdminPage() {
                         </button>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 bg-bg-tertiary border border-border rounded-xl">
-                        {profiles.map((p) => {
+                        {!selectedUserId ? (
+                          <div className="col-span-2 sm:col-span-3 text-center text-text-muted">
+                            Select a User first
+                          </div>
+                        ):(profiles.map((p) => {
                           const isChecked = selectedProfiles.includes(p.id);
                           return (
                             <label
@@ -980,7 +1134,7 @@ export default function AdminPage() {
                               </span>
                             </label>
                           );
-                        })}
+                        }))}
                       </div>
                     </div>
 
@@ -1107,136 +1261,173 @@ export default function AdminPage() {
                   </button>
                 </div>
 
-                {/* Content Grid */}
-                {pageLoading
-                ?(
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {[...Array(6)].map((_, i) => (
-                        <div
-                          key={i}
-                          className="
-                            animate-pulse
-                            bg-bg-secondary
-                            rounded-xl
-                            overflow-hidden
-                          "
-                        >
-                          <div
-                            className="
-                              aspect-video
-                              bg-zinc-800
-                            "
-                          />
-                          <div className="p-4">
-                            <div
-                              className="
-                                h-4
-                                bg-zinc-800
-                                rounded
-                                mb-2
-                              "
-                            />
-                            <div
-                              className="
-                                h-3
-                                bg-zinc-900
-                                rounded
-                              "
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                )
-                :(<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {media.map((item) => (
-                    <div
-                      key={item.id}
-                      className="bg-bg-secondary rounded-xl border border-border overflow-hidden group hover:border-border-hover transition-all duration-300"
-                      id={`admin-card-${item.id}`}
+                <select
+                  value={manageUserId}
+                  onChange={handleManageUserChange}
+                >
+                  <option value="">
+                    Select User
+                  </option>
+
+                  {users.map(user => (
+                    <option
+                      key={user.id}
+                      value={user.id}
                     >
-                      <div className="relative aspect-video overflow-hidden">
-                        <Image
-                          src={item.thumbnail_url}
-                          alt={item.title}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-500"
-                          sizes="(max-width: 768px) 100vw, 33vw"
-                        />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300 flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100">
-                          <button
-                            onClick={async() => {
-                              setSelectedMedia(item);
-                              const { data: profileLinks } = await supabase
+                      {user.email}
+                    </option>
+                  ))}
+                </select>
+
+
+                {!manageUserId ? (
+                  <div className="text-center py-20 text-text-muted">
+                    Select a user to manage their content 
+                  </div>
+                ):(
+                  /* Content Grid */
+                  pageLoading
+                  ?(
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {[...Array(6)].map((_, i) => (
+                          <div
+                            key={i}
+                            className="
+                              animate-pulse
+                              bg-bg-secondary
+                              rounded-xl
+                              overflow-hidden
+                            "
+                          >
+                            <div
+                              className="
+                                aspect-video
+                                bg-zinc-800
+                              "
+                            />
+                            <div className="p-4">
+                              <div
+                                className="
+                                  h-4
+                                  bg-zinc-800
+                                  rounded
+                                  mb-2
+                                "
+                              />
+                              <div
+                                className="
+                                  h-3
+                                  bg-zinc-900
+                                  rounded
+                                "
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                  )
+                  :(<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {media.map((item) => (
+                      <div
+                        key={item.id}
+                        className="bg-bg-secondary rounded-xl border border-border overflow-hidden group hover:border-border-hover transition-all duration-300"
+                        id={`admin-card-${item.id}`}
+                      >
+                        <div className="relative aspect-video overflow-hidden">
+                          <Image
+                            src={item.thumbnail_url}
+                            alt={item.title}
+                            fill
+                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                            sizes="(max-width: 768px) 100vw, 33vw"
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300 flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100">
+                            <button
+                              onClick={async() => {
+                                const { data: profileLinks } = await supabase
                                   .from("media_profiles")
-                                  .select("profile_id")
+                                  .select(`
+                                    profile_id,
+                                    profiles(*)
+                                  `)
                                   .eq("media_id", item.id);
 
-                              setSelectedProfiles(
-                                profileLinks?.map(
-                                  p => p.profile_id
-                                ) || []
-                              );
+                                console.log("PROFILE LINKS:", profileLinks);
+                                const targetUserId = (profileLinks?.[0] as any)?.profiles?.user_id;
 
-                              const { data: categoryLinks } =
-                                  await supabase
-                                    .from("media_categories")
-                                    .select("category")
-                                    .eq("media_id", item.id);
+                                if (targetUserId) {
+                                  await loadProfilesForUser(targetUserId);
+                                }
+                                setSelectedMedia(item);
 
-                              setSelectedCategories(
-                                categoryLinks?.map(
-                                  c => c.category
-                                ) || []
-                              );
+                                setSelectedProfiles(
+                                  profileLinks?.map(
+                                    p => p.profile_id
+                                  ) || []
+                                );
 
-                              setEditTitle(item.title);
-                              setEditDescription(item.description);
-                              setShowEditModal(true);
-                            }}
-                            className="p-2 rounded-lg bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                            </svg>
-                          </button>
-                          <button disabled={deletingId===item.id} onClick={() => handleDelete(item.id)} className="p-2 rounded-lg bg-red-500/20 backdrop-blur-sm hover:bg-red-500/30 transition-colors">
-                            {deletingId===item.id
-                            ?(
-                              <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin"/>
-                            )
-                            :(<svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>)
-                            }
-                          </button>
-                        </div>
-                      </div>
-                      <div className="p-4">
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <h3 className="font-semibold text-sm mb-1">
-                              {item.title}
-                            </h3>
-                            <p className="text-xs text-text-muted line-clamp-1">
-                              {item.description}
-                            </p>
+                                const { data: categoryLinks } =
+                                    await supabase
+                                      .from("media_categories")
+                                      .select("category")
+                                      .eq("media_id", item.id);
+
+                                setSelectedCategories(
+                                  categoryLinks?.map(
+                                    c => c.category
+                                  ) || []
+                                );
+
+                                setEditTitle(item.title);
+                                setEditDescription(item.description);
+                                setShowEditModal(true);
+                              }}
+                              className="p-2 rounded-lg bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                            </button>
+                            <button disabled={deletingId===item.id} onClick={() => handleDelete(item.id)} className="p-2 rounded-lg bg-red-500/20 backdrop-blur-sm hover:bg-red-500/30 transition-colors">
+                              {deletingId===item.id
+                              ?(
+                                <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin"/>
+                              )
+                              :(<svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>)
+                              }
+                            </button>
                           </div>
-                          <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full bg-accent/10 text-accent font-medium">
-                            {item.category}
-                          </span>
+                        </div>
+                        <div className="p-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <h3 className="font-semibold text-sm mb-1">
+                                {item.title}
+                              </h3>
+                              <p className="text-xs text-text-muted line-clamp-1">
+                                {item.description}
+                              </p>
+                            </div>
+                            <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full bg-accent/10 text-accent font-medium">
+                              {item.category}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>)
-                }
+                    ))}
+                  </div>)
+                  
+                )}
 
                 {/* Edit Media Modal */}
                 {showEditModal && selectedMedia && (
+                  
                   <div
                     className="min-w-full min-h-full fixed inset-0 bg-black/80 backdrop-blur-md flex items-start justify-center z-50 p-4 overflow-y-auto"
-                    onClick={() => setShowEditModal(false)}
+                    onClick={() => {
+                      setShowEditModal(false)}}
                   >
                     <div
                       className="relative min-w-full min-h-full rounded-2xl overflow-hidden shadow-2xl my-8 sm:my-16"
@@ -1339,6 +1530,8 @@ export default function AdminPage() {
                               className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white placeholder-white/20 text-sm resize-none focus:outline-none focus:border-accent/40 focus:bg-white/[0.06] focus:ring-1 focus:ring-accent/20 transition-all duration-200"
                             />
                           </div>
+
+                          
 
                           {/* Profiles Selection */}
                           <div>

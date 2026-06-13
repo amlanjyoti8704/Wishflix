@@ -48,6 +48,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
+  // Checking if the user is admin
+  if (session && request.nextUrl.pathname.startsWith("/admin")) {
+
+    const { data, error } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", session.user.id)
+      .single();
+
+    if (error || data?.role !== "admin") {
+      return NextResponse.redirect(
+        new URL("/browse", request.url)
+      );
+    }
+  }
+
   // ✅ Already logged in
   if (
     session &&

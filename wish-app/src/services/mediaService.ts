@@ -8,6 +8,7 @@ export const getProfileMedia = async (
     "FETCHING MEDIA FOR",
     profileId
   );
+  
 
   const { data, error } =
     await supabase
@@ -23,9 +24,8 @@ export const getProfileMedia = async (
         "profile_id",
         profileId
       );
-
-  console.log("DATA", data);
-  console.log("ERROR", error);
+console.log("PROFILE QUERY RESULT:", data);
+console.log("PROFILE QUERY ERROR:", error);
 
   if (error) {
     console.log(error);
@@ -52,6 +52,67 @@ export const getMediaById = async (mediaId: string) => {
   return data;
 };
 
+export const getMediaByUser = async (
+  userId: string
+) => {
+
+  // Step 1: Get all profiles belonging to user
+  const {
+    data: profiles,
+    error: profilesError
+  } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", userId);
+
+  if (profilesError) {
+    console.log(profilesError);
+    return [];
+  }
+
+  if (!profiles?.length) {
+    return [];
+  }
+
+  const profileIds =
+    profiles.map(
+      (profile) => profile.id
+    );
+
+    console.log("Profiles:", profiles);
+console.log("Profile IDs:", profileIds);
+
+  // Step 2: Get media assigned to those profiles
+  const {
+    data,
+    error
+  } = await supabase
+    .from("media_profiles")
+    .select(`
+      media (
+        *,
+        media_categories (
+          category
+        )
+      )
+    `)
+    .in(
+      "profile_id",
+      profileIds
+    );
+    console.log("Media Profiles Query:", data);
+console.log("Media Profiles Error:", error);
+
+  if (error) {
+    console.log(error);
+    return [];
+  }
+
+  // Step 3: Return plain media array
+  return data.map(
+    (item: any) => item.media
+  );
+};
 
 export const getAllMedia =
 async () => {
@@ -94,6 +155,30 @@ export const deleteMedia = async (
       .eq("media_id", mediaId);
 
   console.log("PROFILE DELETE", profileRes.error);
+
+  const recentRes =
+    await supabase
+      .from("recently_viewed")
+      .delete()
+      .eq("media_id", mediaId);
+
+  console.log("RECENT DELETE", recentRes.error);
+
+  const continueRes =
+    await supabase
+      .from("continue_watching")
+      .delete()
+      .eq("media_id", mediaId);
+
+  console.log("CONTINUE DELETE", continueRes.error);
+
+  const memoryRes =
+    await supabase
+      .from("memory_embeddings")
+      .delete()
+      .eq("media_id", mediaId);
+
+  console.log("MEMORY DELETE", memoryRes.error);
 
   const categoryRes =
     await supabase

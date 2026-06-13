@@ -6,13 +6,14 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 import Searchbar from "@/components/Searchbar";
+import { isAdmin } from "@/lib/isAdmin";
 
 export default function Navbar({ mediaItems, onSearchResults }: any) {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profile, setProfile] = useState<any>(null);
-
+  const [adminAccess, setAdminAccess] = useState(false);
   const router = useRouter(); 
 
   const handleLogout = async () => {
@@ -20,6 +21,14 @@ export default function Navbar({ mediaItems, onSearchResults }: any) {
     if (error) console.log(error);
     router.push("/login"); 
   };  
+
+  useEffect(()=>{
+    const checkAdminAccess=async()=>{
+      const access=await isAdmin();
+      setAdminAccess(access);
+    }
+    checkAdminAccess();
+  },[pathname]);
 
   useEffect(() => {
     const getCurrentProfile=async()=>{
@@ -53,7 +62,7 @@ export default function Navbar({ mediaItems, onSearchResults }: any) {
     { href: "/browse", label: "Home" },
     { href: "/browse#my-list", label: "My List" },
     { href: "/profiles", label: "Profiles" },
-    { href: "/admin", label: "Admin" },
+    // { href: "/admin", label: "Admin" },
   ];
 
   // console.log("PROFILE STATE", profile);
@@ -105,7 +114,16 @@ export default function Navbar({ mediaItems, onSearchResults }: any) {
                   />
                 </Link>
               );
+              
             })}
+            {adminAccess && (
+                <Link
+                  href="/admin"
+                  className="relative text-sm font-medium text-white/70 hover:text-white transition"
+                >
+                  Admin
+                </Link>
+              )}
           </div>
 
           {/* 🔥 Right Side */}

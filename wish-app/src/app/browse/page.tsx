@@ -131,8 +131,6 @@ export default function BrowsePage() {
       async () => {
 
         const profileId = getCurrentProfile();
-        // console.log("CURRENT PROFILE", profileId);
-        // console.log("PROFILE ID", profileId?.id);
 
         if (!profileId) return;
 
@@ -416,6 +414,10 @@ export default function BrowsePage() {
       );
 
   }, []);
+
+  console.log("PROFILE MEDIA:", profileMedia);
+console.log("MEDIA ITEMS:", mediaItems);
+console.log("CURRENT INDEX:", currentIndex);
 
 
   return (
