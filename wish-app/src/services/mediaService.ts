@@ -108,10 +108,14 @@ console.log("Media Profiles Error:", error);
     return [];
   }
 
-  // Step 3: Return plain media array
-  return data.map(
-    (item: any) => item.media
-  );
+  // Step 3: Deduplicate and return plain media array
+  const mediaMap = new Map();
+  data.forEach((item: any) => {
+    if (item.media && !mediaMap.has(item.media.id)) {
+      mediaMap.set(item.media.id, item.media);
+    }
+  });
+  return Array.from(mediaMap.values());
 };
 
 export const getAllMedia =
