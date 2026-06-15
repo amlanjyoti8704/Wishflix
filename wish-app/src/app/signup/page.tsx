@@ -12,6 +12,8 @@ export default function SignupPage() {
   const [retypePassword, setRetypePassword] = useState(""); 
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [signupType, setSignupType] = useState<"user" | "admin">("user");
+  const [adminCode, setAdminCode] = useState("");
 
 useEffect(() => {
   const checkUser = async () => {
@@ -25,12 +27,33 @@ useEffect(() => {
   checkUser();
 }, []);
 
+
 const handleSubmit = async (e: any) => {
   e.preventDefault();
 
   if (password !== retypePassword) return;
 
   setIsLoading(true);
+
+  if (signupType === "admin") {
+    try {
+      const res = await fetch("/api/validate-admin-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adminCode }),
+      });
+      const result = await res.json();
+      if (!result.valid) {
+        alert(result.message || "Invalid admin code");
+        setIsLoading(false);
+        return;
+      }
+    } catch {
+      alert("Failed to verify admin code. Please try again.");
+      setIsLoading(false);
+      return;
+    }
+  }
 
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -47,28 +70,42 @@ const handleSubmit = async (e: any) => {
   }
 
   if (!data.user) {
-    alert("Use not found");
+    alert("User not found");
     setIsLoading(false);
     return;
   }
 
-  const { data: profileData, error: profileError } =
+  const { error: profileError } =
     await supabase
       .from("profiles")
-      .insert({
-        user_id: data?.user?.id,
-        name: name,
-        // avatar: "/avatar1.png",
+      .update({
+        name
       })
-      .select();
+      .eq("user_id", data.user.id);
 
-  console.log("PROFILE DATA:", profileData);
   console.log("PROFILE ERROR:", profileError);
 
   if (profileError) {
     alert(profileError.message);
     setIsLoading(false);
     return;
+  }
+
+  if (signupType === "admin") {
+
+    const { error: roleError } = await supabase
+        .from("user_roles")
+        .update({
+          role: "admin"
+        })
+        .eq(
+          "user_id",
+          data.user.id
+        );
+
+    if(roleError){
+      console.log(roleError);
+    }
   }
 
   window.location.href = "/profiles";
@@ -104,6 +141,35 @@ const handleSubmit = async (e: any) => {
           <div className="px-10 py-12">
 
             <div className="max-w-full mx-auto flex flex-col items-center justify-center gap-2.5 w-full h-[65vh]">
+
+              {/* Signup Type Tabs */}
+              <div className="flex w-[50vw] md:w-[40vw] xl:w-[30vw] mb-4 rounded-xl overflow-hidden border border-white/10">
+
+                <button
+                  type="button"
+                  onClick={() => setSignupType("user")}
+                  className={`flex-1 py-3 ${
+                    signupType === "user"
+                      ? "bg-purple-600 text-white"
+                      : "bg-white/5 text-white/60"
+                  }`}
+                >
+                  User Signup
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSignupType("admin")}
+                  className={`flex-1 py-3 ${
+                    signupType === "admin"
+                      ? "bg-red-600 text-white"
+                      : "bg-white/5 text-white/60"
+                  }`}
+                >
+                  Admin Signup
+                </button>
+
+              </div>
 
               {/* Header */}
               <div className="flex flex-col items-center gap-2">
@@ -154,7 +220,8 @@ const handleSubmit = async (e: any) => {
 
               {/* Form */}
               <form onSubmit={handleSubmit} className="flex flex-col gap-3 w-[50vw] md:w-[40vw] xl:w-[30vw]">
-
+                
+                {/* Full Name */}
                 <input
                   type="text"
                   placeholder="Full Name"
@@ -164,6 +231,7 @@ const handleSubmit = async (e: any) => {
                   required
                 />
 
+                {/* Email */}
                 <input
                   type="email"
                   placeholder="Email"
@@ -172,6 +240,20 @@ const handleSubmit = async (e: any) => {
                   className="w-full px-4 py-3 bg-white/[0.05] border border-white/10 rounded-xl text-white focus:border-purple-500 outline-none"
                   required
                 />
+
+                {/* Admin Code */}
+                {signupType === "admin" && (
+                  <input
+                    type="password"
+                    placeholder="Admin Code"
+                    value={adminCode}
+                    onChange={(e) =>
+                      setAdminCode(e.target.value)
+                    }
+                    className="w-full px-4 py-3 bg-white/[0.05] border border-white/10 rounded-xl text-white"
+                    required
+                  />
+                )}
 
                 {/* Password */}
                 <div className="relative">

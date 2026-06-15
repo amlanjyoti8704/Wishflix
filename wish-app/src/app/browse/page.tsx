@@ -415,9 +415,9 @@ export default function BrowsePage() {
 
   }, []);
 
-  console.log("PROFILE MEDIA:", profileMedia);
-console.log("MEDIA ITEMS:", mediaItems);
-console.log("CURRENT INDEX:", currentIndex);
+//   console.log("PROFILE MEDIA:", profileMedia);
+// console.log("MEDIA ITEMS:", mediaItems);
+// console.log("CURRENT INDEX:", currentIndex);
 
 
   return (
@@ -433,8 +433,16 @@ console.log("CURRENT INDEX:", currentIndex);
           {/* Content Rows */}
           <div className="-mt-16 sm:-mt-24 relative z-10 pb-16 flex flex-col gap-4 sm:gap-6">
 
+            {mediaItems.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-[85vh]">
+                <p className="text-white/60 text-lg font-medium">
+                  No media items found
+                </p>
+              </div>
+            )}
+
             {/* Filter Bar — hidden during search */}
-            {searchQuery.length < 2 && (
+            {mediaItems.length>0 && searchQuery.length < 2 && (
               <div className="sticky top-16 mt-20 w-full z-30 px-4 sm:px-6 lg:px-12 pt-2 pb-3">
                 <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 p-2.5 sm:p-3 bg-black/10 backdrop-blur-2xl shadow-xl shadow-black/30">
 

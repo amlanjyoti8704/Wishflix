@@ -817,10 +817,11 @@ const handleManageUserChange = async (
                       Overview of your content library
                     </p>
                   </div>
-                  <div>
+                  <div className="overflow-hidden w-[180px] text-sm flex justify-start sm:justify-center items-center sm:w-[270px]">
                     <select
                       value={manageUserId}
                       onChange={handleManageUserChange} 
+                      className="text-text-dark"
                     >
                       <option value="">
                         Select User

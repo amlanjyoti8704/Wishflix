@@ -203,6 +203,14 @@ export default function Navbar({ mediaItems, onSearchResults }: any) {
                 </Link>
               );
             })}
+            {adminAccess && (
+                <Link
+                  href="/admin"
+                  className="relative text-sm font-medium text-white/70 hover:text-white transition"
+                >
+                  Admin
+                </Link>
+              )}
 
           </div>
         </div>
