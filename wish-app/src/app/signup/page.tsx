@@ -195,6 +195,9 @@ const handleSubmit = async (e: any) => {
                   onClick={async()=>{
                     await supabase.auth.signInWithOAuth({
                       provider: 'google',
+                      options: {
+                        redirectTo: `${window.location.origin}/auth/callback`,
+                      },
                     })
                   }}
                   className="w-full text-center py-3 rounded-xl bg-white/5 text-white font-semibold hover:scale-[1.02] transition">
@@ -204,6 +207,9 @@ const handleSubmit = async (e: any) => {
                   onClick={async()=>{
                     await supabase.auth.signInWithOAuth({
                       provider: 'github',
+                      options: {
+                        redirectTo: `${window.location.origin}/auth/callback`,
+                      },
                     })
                   }}
                   className="w-full text-center py-3 rounded-xl bg-white/5 text-white font-semibold hover:scale-[1.02] transition">

@@ -1,19 +1,21 @@
 import { GoogleGenAI } from "@google/genai";
-import dotenv from "dotenv";
 
-dotenv.config({
-  path: ".env.local",
-});
+let _ai: GoogleGenAI | null = null;
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY!,
-});
+function getAI() {
+  if (!_ai) {
+    _ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY!,
+    });
+  }
+  return _ai;
+}
 
 export async function generateEmbedding(
   text: string
 ) {
   const result =
-    await ai.models.embedContent({
+    await getAI().models.embedContent({
       model: "gemini-embedding-001",
       contents: text,
     });

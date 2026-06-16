@@ -2,25 +2,21 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  // const [focused, setFocused] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const router=useRouter();
 
   useEffect(() => {
     const checkUser = async () => {
       const { data } = await supabase.auth.getSession();
 
       if (data.session) {
-        router.push("/profiles");
+        window.location.href = "/profiles";
       }
     };
 
@@ -40,7 +36,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/profiles")
+    window.location.href = "/profiles";
   };
 
   return (
@@ -101,6 +97,9 @@ export default function LoginPage() {
                   onClick={async()=>{
                     await supabase.auth.signInWithOAuth({
                       provider:"google",
+                      options: {
+                        redirectTo: `${window.location.origin}/auth/callback`,
+                      },
                     })
                   }}
                   className="text-center cursor-pointer w-full py-3 rounded-xl bg-white/5 text-white font-semibold transition hover:scale-[1.02] active:scale-[0.98] shadow-lg">
@@ -110,6 +109,9 @@ export default function LoginPage() {
                   onClick={async()=>{
                     await supabase.auth.signInWithOAuth({
                       provider:"github",
+                      options: {
+                        redirectTo: `${window.location.origin}/auth/callback`,
+                      },
                     })
                   }}
                   className="text-center cursor-pointer w-full py-3 rounded-xl bg-white/5 text-white font-semibold transition hover:scale-[1.02] active:scale-[0.98] shadow-lg">

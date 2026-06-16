@@ -1,0 +1,44 @@
+# ──────────────────────────────────────────────────────────────
+# Docker Compose for wish-app
+#
+# USAGE:
+#   1. Copy .env.example → .env  and fill in your real values
+#   2. Run:  docker compose up --build
+#   3. Open: http://localhost:3000
+#
+# To stop:  docker compose down
+# To rebuild after code changes: docker compose up --build
+# ──────────────────────────────────────────────────────────────
+
+services:
+  wish-app:
+    # Build the image from our Dockerfile
+    build:
+      context: .                  # Use the current directory as build context
+      dockerfile: Dockerfile       # Use the Dockerfile we created
+
+      # ── Build-time args (NEXT_PUBLIC_* are baked into JS) ──
+      # These get read from the .env file automatically
+      args:
+        - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+        - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+
+    # ── Runtime env vars ──
+    # Docker Compose reads the .env file and passes these to the container.
+    # NEXT_PUBLIC_* are also needed at runtime for the middleware (server-side).
+    environment:
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - REDIS_URL=${REDIS_URL}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - UPSTASH_REDIS_REST_URL=${UPSTASH_REDIS_REST_URL}
+      - UPSTASH_REDIS_REST_TOKEN=${UPSTASH_REDIS_REST_TOKEN}
+      - ADMIN_CODE=${ADMIN_CODE}
+
+    # Map container port 3000 → host port 3000
+    ports:
+      - "3000:3000"
+
+    # Restart the container if it crashes
+    restart: unless-stopped
