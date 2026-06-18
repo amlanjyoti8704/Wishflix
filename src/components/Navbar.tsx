@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 import Searchbar from "@/components/Searchbar";
@@ -14,6 +14,8 @@ export default function Navbar({ mediaItems, onSearchResults }: any) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [adminAccess, setAdminAccess] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter(); 
 
   const handleLogout = async () => {
@@ -57,6 +59,16 @@ export default function Navbar({ mediaItems, onSearchResults }: any) {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, [pathname]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const navLinks = [
     { href: "/browse", label: "Home" },
@@ -132,8 +144,11 @@ export default function Navbar({ mediaItems, onSearchResults }: any) {
             {pathname === "/browse" && <Searchbar mediaItems={mediaItems} onSearchResults={onSearchResults} />}
 
             {/* Profile */}
-            <div className="relative group">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500 to-red-800 flex items-center justify-center font-bold text-sm transition-all duration-300 group-hover:ring-2 group-hover:ring-red-500/50 group-hover:scale-110">
+            <div ref={dropdownRef} className="relative">
+              <button 
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500 to-red-800 flex items-center justify-center font-bold text-sm transition-all duration-300 hover:ring-2 hover:ring-red-500/50 hover:scale-110 focus:outline-none"
+              >
                 {profile?.avatar ? (
                   <img
                     src={profile.avatar}
@@ -145,13 +160,17 @@ export default function Navbar({ mediaItems, onSearchResults }: any) {
                     {profile?.name?.charAt(0).toUpperCase()}
                   </span>
                 )}  
-              </div>
-              <ul className="absolute right-0 top-full mt-2 w-40 py-2 bg-zinc-900 border border-white/10 rounded-lg shadow-xl opacity-0 invisible translate-y-1 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-200 z-50">
+              </button>
+              <ul className={`absolute right-0 top-full mt-2 w-40 py-2 bg-zinc-900 border border-white/10 rounded-lg shadow-xl transition-all duration-200 z-50 ${
+                dropdownOpen 
+                  ? "opacity-100 visible translate-y-0" 
+                  : "opacity-0 invisible translate-y-1"
+              }`}>
                 <li className="py-1 px-2 text-center">
-                  <Link href="/profiles" className="text-sm font-medium text-white/70 hover:text-white transition">Manage Profiles</Link>  
+                  <Link href="/profiles" onClick={() => setDropdownOpen(false)} className="text-sm font-medium text-white/70 hover:text-white transition">Manage Profiles</Link>  
                 </li>
                 <li className="py-1 px-2 text-center">
-                    <button className="text-sm font-medium text-white/70 hover:text-white transition" onClick={() => handleLogout()}>Logout</button>
+                    <button className="text-sm font-medium text-white/70 hover:text-white transition" onClick={() => { setDropdownOpen(false); handleLogout(); }}>Logout</button>
                 </li>
               </ul>
             </div>
